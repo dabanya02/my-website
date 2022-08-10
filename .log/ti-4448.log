@@ -1,0 +1,35 @@
+[20:39:00.401] Global cache location '/home/dabanya02/.cache/typescript/4.7', safe file path '/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/typingSafeList.json', types map path /home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/typesMap.json
+[20:39:00.402] Processing cache location '/home/dabanya02/.cache/typescript/4.7'
+[20:39:00.402] Trying to find '/home/dabanya02/.cache/typescript/4.7/package.json'...
+[20:39:00.404] Loaded content of '/home/dabanya02/.cache/typescript/4.7/package.json': {"private":true,"dependencies":{"types-registry":"^0.1.603"}}
+[20:39:00.404] Loaded content of '/home/dabanya02/.cache/typescript/4.7/package-lock.json'
+[20:39:00.404] Finished processing cache location '/home/dabanya02/.cache/typescript/4.7'
+[20:39:00.404] Process id: 4455
+[20:39:00.404] NPM location: /usr/bin/npm (explicit '--npmLocation' not  provided)
+[20:39:00.404] validateDefaultNpmLocation: false
+[20:39:00.404] Npm config file: /home/dabanya02/.cache/typescript/4.7/package.json
+[20:39:00.405] Updating types-registry npm package...
+[20:39:00.405] Exec: /usr/bin/npm install --ignore-scripts types-registry@latest
+[20:39:00.942]     Succeeded. stdout:
+    
+    up to date, audited 2 packages in 335ms
+
+found 0 vulnerabilities
+
+[20:39:00.942] Updated types-registry npm package
+[20:39:00.967] Got install request {"projectName":"/dev/null/inferredProject1*","fileNames":["/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es5.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2016.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.dom.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.dom.iterable.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.webworker.importscripts.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.scripthost.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.core.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.collection.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.generator.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.iterable.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.promise.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.proxy.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.reflect.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.symbol.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.symbol.wellknown.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2016.array.include.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2016.full.d.ts","/home/dabanya02/Projects/ProjectWebsite/JoeTest/joetest.js"],"compilerOptions":{"module":1,"target":3,"jsx":1,"allowJs":true,"allowSyntheticDefaultImports":true,"allowNonTsExtensions":true,"noEmitForJsFiles":true,"maxNodeModuleJsDepth":2},"typeAcquisition":{"enable":true,"include":[],"exclude":[]},"unresolvedImports":[],"projectRootPath":"/home/dabanya02/Projects/ProjectWebsite/JoeTest","kind":"discover"}
+[20:39:00.982] Loaded safelist from types map file '/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/typesMap.json'
+[20:39:00.983] Explicitly included types: []
+[20:39:00.983] Inferred typings from unresolved imports: []
+[20:39:00.983] Result: {"cachedTypingPaths":[],"newTypingNames":[],"filesToWatch":["/home/dabanya02/Projects/ProjectWebsite/JoeTest/bower_components","/home/dabanya02/Projects/ProjectWebsite/JoeTest/node_modules"]}
+[20:39:00.983] Finished typings discovery: {"cachedTypingPaths":[],"newTypingNames":[],"filesToWatch":["/home/dabanya02/Projects/ProjectWebsite/JoeTest/bower_components","/home/dabanya02/Projects/ProjectWebsite/JoeTest/node_modules"]}
+[20:39:00.984] DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/JoeTest/bower_components
+[20:39:00.984] DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/JoeTest/bower_components 1 undefined Project: /dev/null/inferredProject1* watcher already invoked: false
+[20:39:00.985] Elapsed:: 0.9096399999689311ms DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/JoeTest/bower_components 1 undefined Project: /dev/null/inferredProject1* watcher already invoked: false
+[20:39:00.985] DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/JoeTest/node_modules
+[20:39:00.985] DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/JoeTest/node_modules 1 undefined Project: /dev/null/inferredProject1* watcher already invoked: false
+[20:39:00.985] Elapsed:: 0.05981999996583909ms DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/JoeTest/node_modules 1 undefined Project: /dev/null/inferredProject1* watcher already invoked: false
+[20:39:00.985] Sending response:
+    {"projectName":"/dev/null/inferredProject1*","typeAcquisition":{"enable":true,"include":[],"exclude":[]},"compilerOptions":{"module":1,"target":3,"jsx":1,"allowJs":true,"allowSyntheticDefaultImports":true,"allowNonTsExtensions":true,"noEmitForJsFiles":true,"maxNodeModuleJsDepth":2},"typings":[],"unresolvedImports":[],"kind":"action::set"}
+[20:39:00.985] Response has been sent.
+[20:39:00.985] No new typings were requested as a result of typings discovery

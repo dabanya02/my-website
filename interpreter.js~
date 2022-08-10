@@ -1,0 +1,65 @@
+function Interpreter() {
+	const [text, setText] = React.useState("Hello World!");
+	const [input, setInput] = React.useState("");
+	let helloworld = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.";
+	return (
+		<main>
+			
+		</main>)
+}
+
+class stringInterpreter {
+	static mem;
+	static ptr;
+	constructor(size, start) {
+		mem = new Array[size];
+		ptr = start;
+	}
+
+	static interpretString(string, input) {
+		console.log(input);
+		let loops = [];
+		let mem = [0];
+		let ptr = 0;
+		let result = "";
+		let n = 0;
+		for (let i = 0; i < string.length; i++) {
+			switch (string.charAt(i)) {
+				case '[':
+					loops.push(i);
+					break;
+				case ']':
+					let temp = loops.pop();
+					if (mem[ptr] !== 0) {
+						i = temp - 1;
+					}
+					break;
+				case '+':
+					mem[ptr]++;
+					break;
+				case '-':
+					mem[ptr]--;
+					break;
+				case '>':
+					ptr++;
+					if (mem.length <= ptr)
+						mem.push(0);
+					break;
+				case '<':
+					if (ptr == 0) { alert("negative numbers not allowed"); break; }
+					ptr--;
+					break;
+				case '.':
+					result = result.concat(String.fromCharCode(mem[ptr]));
+					break;
+				case ',':
+					mem[ptr] = input.charCodeAt(n);
+					n++;
+				default:
+					break;
+			}
+		}
+		return result;
+	}
+}
+export default Interpreter;

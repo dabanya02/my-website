@@ -1,0 +1,84 @@
+:root {
+    --bg-color: lightblue;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: rgb(22, 22, 22);
+    padding: 40px;
+    font-family: Helvetica, 'Times New Roman';
+    text-align: left;
+}
+
+#tab_bar {
+    width: 100%;
+    height: 30px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: #33373d;
+}
+
+#tab {
+    color: white;
+}
+
+@keyframes aboutBgColor {
+    from {
+        background-color: var(--bg-color);
+    }
+
+    to {
+        background-color: yellow;
+    }
+}
+
+img {
+    width: 50%;
+    min-width: 10%;
+    height: 100%;
+    object-fit: cover;
+}
+
+a {
+    color: rgb(22, 22, 22)
+}
+
+a:visited {
+    text-decoration: none;
+    color: rgb(22, 22, 22);
+}
+
+#BFCode {
+	position:relative;
+	width:90%;
+	height: 20vh;
+    resize: none;
+}
+
+#BFInput {
+    position: relative;
+    width: 90%;
+    height: 10vh;
+    resize: none;
+}
+
+td {
+    vertical-align: top;
+}
+
+.BFTextArea {
+    position: relative;
+    width: 90%;
+    height: 40vh;
+    resize: none;
+}
+
+.BFOutput {
+    display: block;
+    background: #33373d;
+    border: solid 2px black;
+    color: rgb(255, 255, 255);
+    padding: 1%;
+    width: 88%;
+}

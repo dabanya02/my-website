@@ -1,0 +1,18 @@
+export class Vec2 {
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	static add(a, b) {
+		return new Vec2(a.x + b.x, a.y + b.y);
+	}
+
+	static sub(a, b) {
+		return new Vec2(a.x - b.x, a.y - b.y);
+	}
+
+	static scale(mul, vector) {
+		return new Vec2(vector.x * mul, vector.y * mul);
+	}
+}

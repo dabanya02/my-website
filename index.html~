@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="assets/main.css" />
+    <title>Cool Projects</title>
+</head>
+
+<body>
+    <h1>Hello World...</h1>
+    <p>Here you can find some of my coding projects.</p>
+    <ul>
+        <li>
+            <a href="https://github.com/dabanya02/joetracer">
+                JoeTracer, a cool path-tracer written in C++
+            </a>
+        </li>
+        <li>
+            <a href="./bf.html">
+                BF Language Interpreter written in Javascript
+            </a>
+        </li>
+</body>
+
+</html>
