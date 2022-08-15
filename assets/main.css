@@ -1,11 +1,17 @@
+:root {
+	--project-card-size: 525px;
+	--num-projects: 3;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+	font-family: Arial, Helvetica, sans-serif;
 }
 
 .navbar {
-    background: #33373d;
+    background: lightblue;
     height: 80px;
     display: flex;
     justify-content: center;
@@ -28,10 +34,12 @@
 }
 
 #navbar_logo {
-    background-image: none;
     display: flex;
     align-items: center;
     cursor: pointer;
+	border-radius: 40%;
+	height: 80px;
+	width: 80px;
 }
 
 .fa-gem {
@@ -50,7 +58,7 @@
 }
 
 .navbar_links {
-    color: #fff;
+    color: black;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -78,7 +86,7 @@
     border: none;
     outline: none;
     border-radius: 4px;
-    background: blue;
+    background: darkblue;
     color: #fff;;
 }
 
@@ -88,7 +96,8 @@
 }
 
 .button:hover {
-    background: #fff;
+    background: aliceblue;
+	color:black;
     transition: all 0.3s ease;
 }
 
@@ -117,7 +126,7 @@
     }
 
     .navbar_menu.active {
-        background: #131313;
+        background: lightblue;
         top: 100%;
         opacity: 1;
         transition: all 0.5s ease;
@@ -127,7 +136,7 @@
     }
 
     #navbar_logo {
-        padding-left: 25px;
+		margin-left: 5%;
     }
 
     .navbar_toggle .bar {
@@ -135,7 +144,7 @@
         height: 3px;
         margin: 5px auto;
         transition: all 0.3s ease-in-out;
-        background: #fff;
+        background: black;
     }
 
     .navbar_item {
@@ -187,16 +196,266 @@
     }
 }
 
-:root {
-    --bg-color: lightblue;
+.main {
+	background-color: aliceblue;
 }
 
-/* body {
-    background-color: var(--bg-color);
-    color: rgb(22, 22, 22);
+.main_container {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	align-items: center;
+	justify-self: center;
+	margin: 0 auto;
+	height: 100vh;
+	background-color: aliceblue;
+	z-index: 1;
+	width: 100%;
+	max-width: 1300px;
+	padding: 0 50px;
+}
+
+.main_content h1 {
+	font-size: 4rem;
+	background-color: black;
+	/* background-image: linear-gradient(); */
+	background-size: 100%;
+	-webkit-background-clip: text;
+	-moz-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	-moz-text-fill-color: transparent;
+}
+
+.main_content h2 {
+	font-size: 4rem;
+	background-color: black;
+	/* background-image: linear-gradient(); */
+	background-size: 100%;
+	-webkit-background-clip: text;
+	-moz-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	-moz-text-fill-color: transparent;
+
+}
+
+.main_content p {
+	margin-top: 1rem;
+	font-size:2rem;
+	font-weight: 700;
+}
+
+.main_button {
+	font-size: 1rem;
+	padding: 14px 32px;
+	background-color: darkblue;
+	border: none;
+	border-radius: 4px;
+	color: white;
+	margin-top: 2rem;
+	cursor: pointer;
+	position: relative;
+	transition: all 0.35s;
+	outline: none;
+}
+
+.main_button:hover {
+	color: black;
+	background: lightblue;
+}
+
+.main_button:hover:after {
+	width: 100%;
+}
+
+.main_img-container {
+	text-align: center;
+}
+
+#main_img {
+	height: 80%;
+	width: 80%;
+}
+
+@media screen and (max-width: 768px) {
+	.main_container {
+		display: grid;
+		grid-template-columns: auto;
+		align-items: center;
+		justify-self: center;
+		width: 100%;
+		margin: 0 auto;
+		height: 90vh;
+	}
+
+	.main_content {
+		text-align: center;
+		margin-bottom: 4rem;
+	}
+
+	.main_content h1 {
+		font-size: 2.5rem;
+		margin-bottom: 2rem;
+	}
+
+	.main_content h2 {
+		font-size: 3rem;
+	}
+
+	.main_content p {
+		margin-top: 1rem;
+		font-size: 1.5rem;
+	}
+}
+
+@media screen and (max-width: 480px) {
+	.main_content h1 {
+		font-size: 2rem;
+		margin-bottom: 3rem;
+	}
+
+	.main_content h2 {
+		font-size: 2rem;
+	}
+
+	.main_content p {
+		margin-top: 1rem;
+		font-size: 1.5rem;
+	}
+
+	.main_button {
+		padding: 12px 36px;
+		margin: 2.5rem 0;
+	}
+}
+
+.writing_container {
+	display:block;
+	justify-self: center;
+	margin: 0 auto;
+	height: 90vh;
+	background-color: aliceblue;
+	z-index: 1;
+	width: 100%;
+	max-width: 1300px;
+	padding: 50px 200px;
+}
+
+.writing_content h1 {
+	font-size: 2rem;
+	background-color: black;
+	background-size: 100%;
+	-webkit-background-clip: text;
+	-moz-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	-moz-text-fill-color: transparent;
+}
+
+.writing_content p {
+	font-size: 1rem;
+	background-color: black;
+	background-size: 100%;
+	margin-top: 10px;
+	-webkit-background-clip: text;
+	-moz-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	-moz-text-fill-color: transparent;
+}
+
+@media screen and (max-width: 960px) {
+	.writing_container {
+		padding: 50px 150px;
+	}
+}
+
+@media screen and (max-width: 480px) {
+	.writing_container {
+		padding: 50px 50px;
+	}
+}
+
+.projects_card:nth-child(1) {
+	background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(17, 17, 17, 1) 100%), url(/assets/joetracer_card.png);
+}
+
+
+.projects_card:nth-child(2) {
+	background-image:linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(17, 17, 17, 1) 100%), url(/assets/bf_card.png);;
+}
+
+.projects_card:nth-child(3) {
+	background-image:linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(17, 17, 17, 1) 100%), url(/assets/joegl_card.png);;
+}
+
+
+
+.projects h2 {
+	position: absolute;
+	top: 350px;
+	left: 30px;
+}
+
+.projects_card p {
+	position: absolute;
+	top: 400px;
+	left: 30px;
+}
+
+.projects_card a {
+	color: #fff;
+	padding: 10px 20px;
+	border: none;
+	outline: none;
+	border-radius: 4px;
+	background: skyblue;
+	position: absolute;
+	top: 440px;
+	left: 30px;
+	font-size: 1rem;
+	cursor: pointer;
+	text-decoration: none;
+    transition: all 0.3s ease-in;
+}
+
+.projects_card a:hover {
+    background: aliceblue;
+	color:black;
+}
+
+.projects_card:hover {
+	transform: scale(1.075);
+	cursor: pointer;
+}
+
+@media screen and (max-width: 960px) {
+	.projects {
+		/* height: calc(var(--project-card-size) * var(--num-projects)) ; */
+	}
+
+	.projects h1 {
+		font-size: 2rem;
+		/* margin-top: 12rem; */
+	}
+}
+
+@media screen and (max-width: 480px) {
+	.projects {
+		/* height: calc(var(--project-card-size) * var(--num-projects) + 10); */
+	}
+
+	.projects h1 {
+		font-size: 1.2rem;
+	}
+
+	.projects_card {
+		width: 300px;
+	}
+}
+
+body {
+    background-color: aliceblue;
+    color: black;
     font-family: Helvetica, 'Times New Roman';
     text-align: left;
-} */
+}
 
 /* #tab_bar {
     width: 100%;

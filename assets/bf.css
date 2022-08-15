@@ -1,0 +1,37 @@
+
+textarea {
+	width: 300px;
+	height: 150px;
+}
+
+#bf {
+	margin: 30px;
+}
+
+#bf button {
+	margin-top: 10px;
+	margin-bottom: 10px;
+	padding: 20px;
+	background-color: darkblue;
+	color: aliceblue;
+	border: double;
+	transition: 0.2s;
+}
+
+#bf p {
+	margin-top: 10px;
+}
+
+#bf button:hover {
+	color: darkblue;
+	background-color: aliceblue;
+}
+
+#bf code {
+	margin-top: 10px;
+	margin-bottom: 10px;
+	padding: 8px;
+	background-color: rgb(15, 15, 15);
+	color: white;
+	font-family: monospace;
+}

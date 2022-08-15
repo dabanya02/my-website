@@ -3,7 +3,7 @@
 
 <head>
 	<meta charset="utf-8" />
-	<link rel="stylesheet" href="assets/main.css" />
+	<link rel="stylesheet" href="/assets/main.css" />
 	<title>Cool Projects</title>
 	<meta name="viewport" content="width=device-width,initial-scale=1.0" />
 </head>
@@ -12,7 +12,7 @@
 	<nav class="navbar">
 		<div class="navbar_container">
 			<a href="/">
-				<img src="assets/logo.png" id="navbar_logo">
+				<img src="/assets/logo.png" id="navbar_logo">
 			</a>
 			<div class="navbar_toggle" id="mobile-menu">
 				<span class="bar"></span>
@@ -30,23 +30,36 @@
 					<a href="/about.html" class="navbar_links"> About </a>
 				</li>
 				<li class="navbar_button">
-					<a href="https://github.com/dabanya02" class="button">My Github</a>
+					<a href="https://github.com/dabanya02/" class="button">My Github</a>
 				</li>
 			</ul>
 		</div>
 	</nav>
 
-	<div class="main">
-		<div class="main_container">
-			<div class="main_content">
-				<h1> Hello World... </h1>
-				<h2> Is re-inventing the wheel so bad?</h2>
-				<p> Here you can find some projects I've done. </p>
-				<button class="main_button" onclick="window.location.href='/projects/index.html';">Take a look</button>
+	<div class="projects">
+		<h1> Some coding stuff I've done </h1>
+		<div class="projects_container">
+			<div class="projects_card">
+				<h2> JoeTracer </h2>
+				<p> A path-tracer written in C++ </p>
+				<a href="https://github.com/dabanya02/joetracer"> Source code </a>
 			</div>
+
+			<div class="projects_card">
+				<h2> BF Interpreter </h2>
+				<p> A programming language interpreter in Javascript </p>
+				<a href="bf.html"> Check it out </a>
+			</div>
+
+			<div class="projects_card">
+				<h2> JoeGL </h2>
+				<p> A simple 3D WebGL renderer </p>
+				<a href="/projects/joetest/"> Check it out </a>
+			</div>
+
 		</div>
 	</div>
-	<script src="app.js"></script>
+	<script src="/app.js"> </script>
 </body>
 
 </html>
