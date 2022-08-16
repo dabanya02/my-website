@@ -341,23 +341,23 @@
 
 .writing_content h1 {
 	font-size: 2rem;
-	background-color: black;
+	/* background-color: black; */
 	background-size: 100%;
-	-webkit-background-clip: text;
-	-moz-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	-moz-text-fill-color: transparent;
+	/* -webkit-background-clip: text; */
+	/* -moz-background-clip: text; */
+	/* -webkit-text-fill-color: transparent; */
+	/* -moz-text-fill-color: transparent; */
 }
 
 .writing_content p {
 	font-size: 1rem;
-	background-color: black;
+	/* background-color: black; */
 	background-size: 100%;
 	margin-top: 10px;
-	-webkit-background-clip: text;
-	-moz-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	-moz-text-fill-color: transparent;
+	/* -webkit-background-clip: text; */
+	/* -moz-background-clip: text; */
+	/* -webkit-text-fill-color: transparent; */
+	/* -moz-text-fill-color: transparent; */
 }
 
 @media screen and (max-width: 960px) {
@@ -485,7 +485,7 @@
 
 body {
     background-color: aliceblue;
-    color: black;
+    color: black;				/**/
     font-family: Helvetica, 'Times New Roman';
     text-align: left;
 }
