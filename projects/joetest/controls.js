@@ -138,6 +138,6 @@ function lockChangeInterrupt() {
 }
 
 function updateRotation(e) {
-	xy[0] -= (e.movementX * 0.5);
-	xy[1] -= (e.movementY * 0.5);
+	xy[0] -= (e.movementX * 0.1);
+	xy[1] -= (e.movementY * 0.1);
 }
