@@ -3,7 +3,7 @@ import { fetchSources } from "./data.js"
 import { setupControls, updateValues } from "./controls.js"
 import { setCuboid } from "./primitives.js"
 import { Vector3 } from "./vector.js";
-import { loadImage, setNormals, setColors, setTexcoords, setGeometry, createProgram, createShader, resizeCanvasToDisplaySize } from "./glhelpers.js"
+import { setAttribs, loadImage, setNormals, setColors, setTexcoords, setGeometry, createProgram, createShader, resizeCanvasToDisplaySize } from "./glhelpers.js"
 import {degToRad, radToDeg, randomInt} from "./math.js";
 
 let gl;
@@ -23,7 +23,7 @@ let lookingAt = false;
 let fpath = 'f.json';
 
 async function main() {
-
+  
 	canvas = document.querySelector("#webgl");
 	gl = canvas.getContext("webgl2");
 	if (!gl) alert("Failed to get gl context");
@@ -38,6 +38,8 @@ async function main() {
 
 	program = createProgram(gl, vertexShader, fragmentShader);
 
+	setAttribs(gl, program);
+	
 	let positionAttributeLocation = gl.getAttribLocation(program, "a_position");
 	let positionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);

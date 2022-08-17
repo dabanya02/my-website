@@ -93,3 +93,36 @@ export function resizeCanvasToDisplaySize(canvas) {
 		canvas.height = displayHeight;
 	}
 }
+
+// taken from https://webglfundamentals.org/webgl/lessons/webgl-qna-how-can-i-get-all-the-uniforms-and-uniformblocks.html
+export function setAttribs(gl, program) {
+	const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+	const indices = [...Array(numUniforms).keys()];
+	const blockIndices = gl.getActiveUniforms(program, indices, gl.UNIFORM_BLOCK_INDEX);
+	const offsets = gl.getActiveUniforms(program, indices, gl.UNIFORM_OFFSET);
+
+	for (let ii = 0; ii < numUniforms; ++ii) {
+		const uniformInfo = gl.getActiveUniform(program, ii);
+		if(isBuiltIn(uniformInfo))
+			continue;
+		const {name, type, size} = uniformInfo;
+		const blockIdx = blockIndices[ii];
+		const offset = offsets[ii];
+		console.log(name, size, glEnumToString(gl, type), blockIdx, offset);
+	}
+}
+
+function isBuiltIn(info) {
+  const name = info.name;
+  return name.startsWith("gl_") || name.startsWith("webgl_");
+}
+
+function glEnumToString(gl, value) {
+  const keys = [];
+  for (const key in gl) {
+    if (gl[key] === value) {
+      keys.push(key);
+    }
+  }
+  return keys.length ? keys.join(' | ') : `0x${value.toString(16)}`;
+}
