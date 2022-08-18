@@ -1,10 +1,12 @@
 import { mat4 } from "./matrix.js"
-import { fetchSources } from "./data.js"
+import { fetchTextData, fetchJSONData } from "./data.js"
 import { setupControls, updateValues } from "./controls.js"
 import { setCuboid } from "./primitives.js"
 import { Vector3 } from "./vector.js";
-import { setAttribs, loadImage, setNormals, setColors, setTexcoords, setGeometry, createProgram, createShader, resizeCanvasToDisplaySize } from "./glhelpers.js"
-import {degToRad, radToDeg, randomInt} from "./math.js";
+import { Type, setAttributesAndCreateVAO, setUniforms, loadImage, createProgram, createShader, resizeCanvasToDisplaySize } from "./glhelpers.js"
+import { degToRad, radToDeg, randomInt } from "./math.js";
+import attribute from "./attribute.js";
+import uniform from "./uniform.js";
 
 let gl;
 let program;
@@ -19,71 +21,56 @@ let prevTime = 0;
 let rotationRad = 0;
 let rotationSpeed = 1;
 
+let constUniforms;
+
 let lookingAt = false;
-let fpath = 'f.json';
 
 async function main() {
-  
+
 	canvas = document.querySelector("#webgl");
 	gl = canvas.getContext("webgl2");
 	if (!gl) alert("Failed to get gl context");
 
 	setupControls(transSpeed, rot, canvas);
 
-	let vertexShaderSource = await fetchSources("./shader.vert");
-	let fragmentShaderSource = await fetchSources("./shader.frag");
+	let vertexShaderSource = await fetchTextData("./shader.vert");
+	let fragmentShaderSource = await fetchTextData("./shader.frag");
 
 	let vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
 	let fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
 
 	program = createProgram(gl, vertexShader, fragmentShader);
 
-	setAttribs(gl, program);
-	
-	let positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-	let positionBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-	// uploads buffer
-	await setGeometry(gl, fpath);
-	vao = gl.createVertexArray();
-	// select the vertex array to bind
-	gl.bindVertexArray(vao);
-	gl.enableVertexAttribArray(positionAttributeLocation);
-	gl.vertexAttribPointer(
-		positionAttributeLocation, 3, gl.FLOAT, false, 0, 0); // upload data to pa location, size (3 for 3d space), don't normalize, stride (jump), offset (where to start reading)
+	let fData = await fetchJSONData('f.json');
+	let fGeometry = new Float32Array(fData.Geometry);
+	// Rotate locations by 180 f and move the f to fit 
+	let matrix = mat4.rotateX(Math.PI);
+	matrix = mat4.mTranslation(matrix, -50, -75, -15);
 
+	// transform each point using the matrix
+	for (let i = 0; i < fGeometry.length; i += 3) {
+		let vector = mat4.transformVector(matrix, [fGeometry[i + 0], fGeometry[i + 1], fGeometry[i + 2], 1]);
+		fGeometry[i + 0] = vector[0];
+		fGeometry[i + 1] = vector[1];
+		fGeometry[i + 2] = vector[2];
+	}
 
-	let texcoordAttributeLocation = gl.getAttribLocation(program, "a_texcoord");
-	let texcoordBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-	await setTexcoords(gl, fpath);
-	gl.enableVertexAttribArray(texcoordAttributeLocation);
-	gl.vertexAttribPointer(texcoordAttributeLocation, 2, gl.FLOAT, true, 0, 0);
+	let fTexcoord = new Float32Array(fData.TextureCoords);
+	let fNormals = new Float32Array(fData.Normals);
+	let fObject = {
+		a_position: new attribute(fGeometry, 3, false),
+		a_texcoord: new attribute(fTexcoord, 2, true),
+		a_normal: new attribute(fNormals, 3, false),
+	}
+
+	vao = setAttributesAndCreateVAO(gl, program, fObject);
 
 	let texture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	// texImage2D(target, level, internalformat, width, height, border, format, type)
 	// Placeholder blue
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
-
 	loadImage(gl, "./resources/f.png", texture);
-
-	// let colorAttributeLocation = gl.getAttribLocation(program, "a_color");
-	// let colorBuffer = gl.createBuffer();
-	// gl.enableVertexAttribArray(colorAttributeLocation);
-	// gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-
-	// await setColors();
-
-	// gl.vertexAttribPointer(
-	// 	colorAttributeLocation, 3, gl.UNSIGNED_BYTE, true, 0, 0);
-
-	let normalLocation = gl.getAttribLocation(program, "a_normal");
-	let buffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-	await setNormals(gl, fpath);
-	gl.enableVertexAttribArray(normalLocation);
-	gl.vertexAttribPointer(normalLocation, 3, gl.FLOAT, false, 0, 0);
 
 	gl.clearColor(0.0, 0.0, 0.0, 0.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -92,19 +79,11 @@ async function main() {
 	gl.enable(gl.DEPTH_TEST);
 
 	requestAnimationFrame(drawScene);
-
 }
 
 function drawScene(now) {
 
 	now *= 0.001;
-	// visibleObjects.forEach(function (obj) {
-	// 	let programInfo = obj.programInfo;
-	// 	gl.useProgram(programInfo.program);
-	// 	gl.bindVertexArray(obj.vertexArray);
-	// 	setUniforms(programInfo, obj.uniforms);
-	// 	drawBufferInfo(gl, bufferInfo);
-	// });
 
 	let dTime = now - prevTime;
 	prevTime = now;
@@ -114,20 +93,19 @@ function drawScene(now) {
 	gl.useProgram(program);
 	gl.bindVertexArray(vao);
 
-	// get uniform locations
-	let worldViewProjectionLocation = gl.getUniformLocation(program, "u_worldViewProjection");
-	let colorLocation = gl.getUniformLocation(program, "u_color");
-	let reverseLightDirectionLocation = gl.getUniformLocation(program, "u_reverseLightDirection");
-	let worldInverseTransposeLocation = gl.getUniformLocation(program, "u_worldInverseTranspose");
-	let worldLocation = gl.getUniformLocation(program, "u_world");
-	let lightWorldPositionLocation = gl.getUniformLocation(program, "u_lightWorldPosition");
-	let viewWorldPositionLocation = gl.getUniformLocation(program, "u_viewWorldPosition");
-	let shininessLocation = gl.getUniformLocation(program, "u_shininess");
-	let lightColorLocation = gl.getUniformLocation(program, "u_lightColor");
-	let specularColorLocation = gl.getUniformLocation(program, "u_specularColor");
-	let innerLimitLocation = gl.getUniformLocation(program, "u_innerLimit");
-	let outerLimitLocation = gl.getUniformLocation(program, "u_outerLimit");
-	let lightDirectionLocation = gl.getUniformLocation(program, "u_lightDirection");
+	let shininess = 150;
+	constUniforms = {
+		u_color: [[0.2, 1, 0.2, 1], Type.vec3],
+		u_reverseLightDirection: [Vector3.unitVec([0.5, 0.7, 1]), Type.vec3],
+		u_lightWorldPosition: [[200, 30, 50], Type.vec3],
+		u_shininess: [shininess, Type.float],
+		u_lightColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
+		u_specularColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
+		u_innerLimit: [1.0, Type.float],
+		u_outerLimit: [5.0, Type.float],
+		u_lightDirection: [[1, 2, 30], Type.vec3],
+	};
+	setUniforms(gl, program, constUniforms);
 
 	let fovRad = degToRad(60);
 	let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
@@ -136,8 +114,8 @@ function drawScene(now) {
 	let radius = 200;
 
 	let projectionMatrix = mat4.perspective(fovRad, aspect, zNear, zFar);
-
 	let cameraMatrix = mat4.identity();
+	
 	// Moves the camera around
 	if (lookingAt) {
 		rotationRad += rotationSpeed / dTime * 0.00015;
@@ -172,6 +150,10 @@ function drawScene(now) {
 
 	let viewProjectionMatrix = mat4.multiply(projectionMatrix, viewMatrix);
 
+	for(let i = 0; i < 5; ++i) {
+		
+	}
+	
 	for (let i = 0; i < 5; ++i) {
 		let angle = i * Math.PI * 2 / 5;
 
@@ -183,24 +165,28 @@ function drawScene(now) {
 		worldMatrix = mat4.mRotateY(worldMatrix, angle);
 		let worldViewProjectionMatrix = mat4.multiply(viewProjectionMatrix, worldMatrix);
 		let worldInverseTransposeMatrix = mat4.transpose(mat4.inverse(worldMatrix));
-		gl.uniformMatrix4fv(worldViewProjectionLocation, false, worldViewProjectionMatrix);
-		gl.uniformMatrix4fv(worldInverseTransposeLocation, false, worldInverseTransposeMatrix);
-		gl.uniform4fv(colorLocation, [0.2, 1, 0.2, 1]);
-		gl.uniform3fv(reverseLightDirectionLocation, Vector3.unitVec([0.5, 0.7, 1]));
-		gl.uniformMatrix4fv(worldLocation, false, worldMatrix);
-		gl.uniform3fv(lightWorldPositionLocation, [200, 30, 50]);
-		gl.uniform3fv(viewWorldPositionLocation, [
-			cameraMatrix[12],
-			cameraMatrix[13],
-			cameraMatrix[14],
-		]);
 		let shininess = 150;
-		gl.uniform1f(shininessLocation, shininess);
-		gl.uniform3fv(lightColorLocation, Vector3.unitVec([1, 1, 1]));
-		gl.uniform3fv(specularColorLocation, Vector3.unitVec([1, 1, 1]));
-		gl.uniform1f(outerLimitLocation, 5.0);
-		gl.uniform1f(innerLimitLocation, 1.0);
-		gl.uniform3fv(lightDirectionLocation, [1, 2, 30]);
+
+		let uniforms = {
+			u_worldViewProjection: [worldViewProjectionMatrix, Type.mat4],
+			// u_color: [[0.2, 1, 0.2, 1], Type.vec3],
+			// u_reverseLightDirection: [Vector3.unitVec([0.5, 0.7, 1]), Type.vec3],
+			u_worldInverseTranspose: [worldInverseTransposeMatrix, Type.mat4],
+			u_world: [worldMatrix, Type.mat4],
+			// u_lightWorldPosition: [[200, 30, 50], Type.vec3],
+			u_viewWorldPosition: [[
+				cameraMatrix[12],
+				cameraMatrix[13],
+				cameraMatrix[14],], Type.vec3],
+			// u_shininess: [shininess, Type.float],
+			// u_lightColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
+			// u_specularColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
+			// u_innerLimit: [1.0, Type.float],
+			// u_outerLimit: [5.0, Type.float],
+			// u_lightDirection: [[1, 2, 30], Type.vec3],
+		};
+
+		setUniforms(gl, program, uniforms);
 
 		let primitiveType = gl.TRIANGLES;
 		let offset = 0;

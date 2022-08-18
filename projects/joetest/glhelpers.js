@@ -1,4 +1,18 @@
-import {mat4} from './matrix.js'; 
+export const Type = {
+	void: 0,
+	bool: 1,
+	int: 2,
+	float: 3,
+	vec2: 4,
+	vec3: 5,
+	vec4: 6,
+	// reserve
+	mat2: 16,
+	mat3: 17,
+	mat4: 18,
+	sampler2D: 19,
+	samplerCube: 20,
+};
 
 export function loadImage(gl, src, texture) {
 	let image = new Image;
@@ -11,49 +25,18 @@ export function loadImage(gl, src, texture) {
 	return image;
 }
 
-export async function setNormals(gl, path) {
-	let response = await fetch(path);
-	let data = await response.json();
-	gl.bufferData(
-		gl.ARRAY_BUFFER, new Float32Array(data.Normals), gl.STATIC_DRAW);
-}
-
-export async function setColors(gl, path) {
-	let response = await fetch(path);
-	let data = await response.json();
-	let colors = new Uint8Array(data.Colors);
-	gl.bufferData(
-		gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
-}
-
-export async function setTexcoords(gl, path) {
-	let response = await fetch(path);
-	let data = await response.json();
-	let texcoords = new Float32Array(data.TextureCoords);
-	gl.bufferData(
-		gl.ARRAY_BUFFER, texcoords, gl.STATIC_DRAW)
-}
-
-export async function setGeometry(gl, path) {
-	let response = await fetch(path);
-	let data = await response.json();
-	let positions =
-		new Float32Array(data.Geometry);
-
-	// Rotate locations by 180 f and move the f to fit 
-	let matrix = mat4.rotateX(Math.PI);
-	matrix = mat4.mTranslation(matrix, -50, -75, -15);
-
-	// transform each point using the matrix
-	for (let i = 0; i < positions.length; i += 3) {
-		let vector = mat4.transformVector(matrix, [positions[i + 0], positions[i + 1], positions[i + 2], 1]);
-		positions[i + 0] = vector[0];
-		positions[i + 1] = vector[1];
-		positions[i + 2] = vector[2];
+export function setAttributesAndCreateVAO(gl, program, attributes) {
+	let vao = gl.createVertexArray();
+	gl.bindVertexArray(vao);
+	for (let name in attributes) {
+		let buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(attributes[name].buffer), gl.STATIC_DRAW);
+		const location = gl.getAttribLocation(program, name);
+		gl.enableVertexAttribArray(location);
+		gl.vertexAttribPointer(location, attributes[name].numComponents, gl.FLOAT, attributes[name].normalization, 0, 0);
 	}
-
-	gl.bufferData(
-		gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+	return vao;
 }
 
 // Author: Greggman from webgl2fundamentals.org  
@@ -95,34 +78,31 @@ export function resizeCanvasToDisplaySize(canvas) {
 }
 
 // taken from https://webglfundamentals.org/webgl/lessons/webgl-qna-how-can-i-get-all-the-uniforms-and-uniformblocks.html
-export function setAttribs(gl, program) {
-	const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-	const indices = [...Array(numUniforms).keys()];
-	const blockIndices = gl.getActiveUniforms(program, indices, gl.UNIFORM_BLOCK_INDEX);
-	const offsets = gl.getActiveUniforms(program, indices, gl.UNIFORM_OFFSET);
-
-	for (let ii = 0; ii < numUniforms; ++ii) {
-		const uniformInfo = gl.getActiveUniform(program, ii);
-		if(isBuiltIn(uniformInfo))
-			continue;
-		const {name, type, size} = uniformInfo;
-		const blockIdx = blockIndices[ii];
-		const offset = offsets[ii];
-		console.log(name, size, glEnumToString(gl, type), blockIdx, offset);
+export function setUniforms(gl, program, uniforms) {
+	for (let name in uniforms) {
+		const data = uniforms[name][0];
+		const type = uniforms[name][1];
+		const location = gl.getUniformLocation(program, name);
+		switch (type) {
+			case (Type.float):
+				gl.uniform1f(location, data);
+				break;
+			case (Type.vec3):
+				gl.uniform3fv(location, data);
+				break;
+			case (Type.vec4):
+				gl.uniform4fv(location, data);
+				break;
+			case (Type.mat2):
+				gl.uniformMatrix2fv(location, false, data);
+				break;
+			case (Type.mat3):
+				gl.uniformMatrix3fv(location, false, data);
+				break;
+			case (Type.mat4):
+				gl.uniformMatrix4fv(location, false, data);
+				break;
+			default:
+		}
 	}
-}
-
-function isBuiltIn(info) {
-  const name = info.name;
-  return name.startsWith("gl_") || name.startsWith("webgl_");
-}
-
-function glEnumToString(gl, value) {
-  const keys = [];
-  for (const key in gl) {
-    if (gl[key] === value) {
-      keys.push(key);
-    }
-  }
-  return keys.length ? keys.join(' | ') : `0x${value.toString(16)}`;
 }
