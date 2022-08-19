@@ -137,6 +137,10 @@ export class mat4 {
 		return this.multiply(m, this.rotateZ(angleRad));
 	}
 
+	static mScaling(m, sx, sy, sz) {
+		return this.multiply(m, this.scaling(sx, sy, sz));
+	}
+
 	// Note: This matrix flips the Y axis so 0 is at the top.
 	static projectionOrthographic(left, right, bottom, top, near, far) {
 		return [

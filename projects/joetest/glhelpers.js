@@ -1,3 +1,5 @@
+import {fetchTextData} from "./data.js"
+
 export const Type = {
 	void: 0,
 	bool: 1,
@@ -29,6 +31,7 @@ export function setAttributesAndCreateVAO(gl, program, attributes) {
 	let vao = gl.createVertexArray();
 	gl.bindVertexArray(vao);
 	for (let name in attributes) {
+		// Create a new buffer for each attribute and point each attribute to the associated buffer
 		let buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(attributes[name].buffer), gl.STATIC_DRAW);
@@ -37,6 +40,16 @@ export function setAttributesAndCreateVAO(gl, program, attributes) {
 		gl.vertexAttribPointer(location, attributes[name].numComponents, gl.FLOAT, attributes[name].normalization, 0, 0);
 	}
 	return vao;
+}
+
+export async function createProgramFromSource(gl, vpath, fpath) {
+	let vertexShaderSource = await fetchTextData(vpath);
+	let fragmentShaderSource = await fetchTextData(fpath);
+
+	let vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+	let fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+	return createProgram(gl, vertexShader, fragmentShader);
 }
 
 // Author: Greggman from webgl2fundamentals.org  
