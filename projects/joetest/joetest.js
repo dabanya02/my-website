@@ -1,5 +1,5 @@
 import { mat4 } from "./matrix.js"
-import { fetchJSONData } from "./data.js"
+import { fetchTextData, fetchJSONData, parseOBJ } from "./data.js"
 import { setupControls, updateValues } from "./controls.js"
 import { createSphereObject, createConeObject } from "./primitives.js"
 import { Vector3 } from "./vector.js";
@@ -26,7 +26,7 @@ let rotationSpeed = 1;
 let camera;
 
 let constUniforms = {
-	u_color: [[0.2, 1, 0.2, 1], Type.vec3],
+	u_color: [[0.2, 1, 0.2, 1], Type.vec4],
 	u_reverseLightDirection: [Vector3.unitVec([0.5, 0.7, 1]), Type.vec3],
 	u_lightWorldPosition: [[200, 30, 50], Type.vec3],
 	u_lightColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
@@ -34,6 +34,7 @@ let constUniforms = {
 	u_innerLimit: [1.0, Type.float],
 	u_outerLimit: [5.0, Type.float],
 	u_lightDirection: [[1, 2, 30], Type.vec3],
+	u_ambient: [[0.2, 0.2, 0.2, 1], Type.vec4],
 };
 
 async function main() {
@@ -43,7 +44,6 @@ async function main() {
 	if (!gl) alert("Failed to get gl context");
 
 	setupControls(transSpeed, rot, canvas);
-
 
 	let program = await createProgramFromSource(gl, "shader.vert", "shader.frag");
 
@@ -80,33 +80,54 @@ async function main() {
 			},
 			[x, 0, z],
 			[angle, angle, angle],
+			[1.2, 1.2, 1.2],
 			new material(150),
 			16 * 6
 		));
 	}
+
+	let objFile = await fetchTextData("resources/joegl.obj");
+	let joeObject = await parseOBJ(objFile);
+	console.log(joeObject)
+	objectsToDraw.push(new object(
+		program,
+		setAttributesAndCreateVAO(gl, program, joeObject),
+		{
+			u_worldViewProjection: null,
+			u_worldInverseTranspose: null,
+			u_world: [mat4.identity(), Type.mat4],
+			u_viewWorldPosition: null,
+			u_shininess: null,
+		},
+		[0, -20, 0],
+		[0, 0, 0],
+		[25, 25, 25],
+		new material(150),
+		joeObject.a_position.buffer.length / 3
+	))
 
 	let texture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
 	loadImage(gl, "./resources/texture.png", texture);
 
-	let coneObject = createConeObject(15);
-	objectsToDraw.push(new object(
-		program,
-		setAttributesAndCreateVAO(gl, program, coneObject),
-		{
-			u_worldViewProjection: null,
-			u_worldInverseTranspose: null,
-			u_world: [mat4.identity, Type.mat4],
-			u_viewWorldPosition: null,
-			u_shininess: null,
-		},
-		[0, 0, 0],
-		[0, 0, 0],
-		new material(150),
-		15 * 6
-	));
-	
+	// let coneObject = createConeObject(15);
+	// objectsToDraw.push(new object(
+	// 	program,
+	// 	setAttributesAndCreateVAO(gl, program, coneObject),
+	// 	{
+	// 		u_worldViewProjection: null,
+	// 		u_worldInverseTranspose: null,
+	// 		u_world: [mat4.identity, Type.mat4],
+	// 		u_viewWorldPosition: null,
+	// 		u_shininess: null,
+	// 	},
+	// 	[0, 0, 0],
+	// 	[0, 0, 0],
+	// 	new material(150),
+	// 	15 * 6
+	// ));
+
 	camera = {
 		fovRad: degToRad(60),
 		aspect: gl.canvas.clientWidth / gl.canvas.clientHeight,
@@ -160,10 +181,10 @@ function drawScene(now) {
 		setUniforms(gl, object.program, constUniforms);
 
 		let worldMatrix = mat4.translation(object.translation[0], object.translation[1], object.translation[2]);
-		worldMatrix = mat4.mRotateX(worldMatrix, now);
-		worldMatrix = mat4.mRotateY(worldMatrix, now);
-		worldMatrix = mat4.mRotateZ(worldMatrix, now);
-		worldMatrix = mat4.mScaling(worldMatrix, 1.2, 1.2, 1.2);
+		// worldMatrix = mat4.mRotateX(worldMatrix, now);
+		// worldMatrix = mat4.mRotateY(worldMatrix, now);
+		// worldMatrix = mat4.mRotateZ(worldMatrix, now);
+		worldMatrix = mat4.mScaling(worldMatrix, object.scaling[0], object.scaling[1], object.scaling[2]);
 		let worldViewProjectionMatrix = mat4.multiply(viewProjectionMatrix, worldMatrix);
 		let worldInverseTransposeMatrix = mat4.transpose(mat4.inverse(worldMatrix));
 
