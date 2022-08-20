@@ -1,9 +1,9 @@
 import { mat4 } from "./matrix.js"
-import { fetchTextData, fetchJSONData } from "./data.js"
+import { fetchJSONData } from "./data.js"
 import { setupControls, updateValues } from "./controls.js"
-import { setCuboid, createSphere, createConeObject } from "./primitives.js"
+import { createSphereObject, createConeObject } from "./primitives.js"
 import { Vector3 } from "./vector.js";
-import { Type, setUniforms, loadImage, createProgram, createShader, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource } from "./glhelpers.js"
+import { Type, setUniforms, loadImage, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource } from "./glhelpers.js"
 import { degToRad, radToDeg, randomInt } from "./math.js";
 import attribute from "./attribute.js";
 import uniform from "./uniform.js";
@@ -11,12 +11,9 @@ import object from "./object.js"
 import material from "./material.js"
 
 let gl;
-let program;
-let fvao;
 let canvas;
 
-let cvao;
-let tvao;
+let objectsToDraw = [];
 
 let trans = [0, 0, 0];
 let transSpeed = [0, 0, 0, 0];
@@ -26,6 +23,19 @@ let prevTime = 0;
 let rotationRad = 0;
 let rotationSpeed = 1;
 
+let camera;
+
+let constUniforms = {
+	u_color: [[0.2, 1, 0.2, 1], Type.vec3],
+	u_reverseLightDirection: [Vector3.unitVec([0.5, 0.7, 1]), Type.vec3],
+	u_lightWorldPosition: [[200, 30, 50], Type.vec3],
+	u_lightColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
+	u_specularColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
+	u_innerLimit: [1.0, Type.float],
+	u_outerLimit: [5.0, Type.float],
+	u_lightDirection: [[1, 2, 30], Type.vec3],
+};
+
 async function main() {
 
 	canvas = document.querySelector("#webgl");
@@ -33,11 +43,10 @@ async function main() {
 	if (!gl) alert("Failed to get gl context");
 
 	setupControls(transSpeed, rot, canvas);
-	
-	program = await createProgramFromSource(gl, "shader.vert", "shader.frag");
 
-	createSphere(2);
-	
+
+	let program = await createProgramFromSource(gl, "shader.vert", "shader.frag");
+
 	let fData = await fetchJSONData('f.json');
 	let fGeometry = correctFVertices(new Float32Array(fData.Geometry));
 	let fTexcoord = new Float32Array(fData.TextureCoords);
@@ -48,24 +57,62 @@ async function main() {
 		a_normal: new attribute(fNormals, 3, false),
 	}
 
-	fvao = setAttributesAndCreateVAO(gl, program, fObject);
+	let num = 15;
+	for (let i = 0; i < num; ++i) {
+		let radius = 200;
+		let angle = i * Math.PI * 2 / num;
+
+		let x = Math.cos(angle) * radius;
+		let z = Math.sin(angle) * radius;
+
+		let worldMatrix = mat4.identity();
+
+		// make a update uniform function for the program to run
+		objectsToDraw.push(new object(
+			program,
+			setAttributesAndCreateVAO(gl, program, fObject),
+			{
+				u_worldViewProjection: null,
+				u_worldInverseTranspose: null,
+				u_world: [worldMatrix, Type.mat4],
+				u_viewWorldPosition: null,
+				u_shininess: null,
+			},
+			[x, 0, z],
+			[angle, angle, angle],
+			new material(150),
+			16 * 6
+		));
+	}
 
 	let texture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, texture);
-	// texImage2D(target, level, internalformat, width, height, border, format, type)
-	// Placeholder blue
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
-	loadImage(gl, "./resources/f.png", texture);
+	loadImage(gl, "./resources/texture.png", texture);
 
 	let coneObject = createConeObject(15);
-	cvao = setAttributesAndCreateVAO(gl, program, coneObject);
-
-	let triangleObject = {
-		a_position: new attribute(new Float32Array(0, 0, 0, 0, 1, 0, 1, 0, 0), 3, false),
-		a_texcoord: new attribute(new Float32Array(0, 0, 0, 1, 1, 0), 2, true),
-		a_normal: new attribute(new Float32Array(1, 0, 0, 1, 0, 0, 1, 0, 0), 3, false),
-	};
-	tvao = setAttributesAndCreateVAO(gl, program, triangleObject);
+	objectsToDraw.push(new object(
+		program,
+		setAttributesAndCreateVAO(gl, program, coneObject),
+		{
+			u_worldViewProjection: null,
+			u_worldInverseTranspose: null,
+			u_world: [mat4.identity, Type.mat4],
+			u_viewWorldPosition: null,
+			u_shininess: null,
+		},
+		[0, 0, 0],
+		[0, 0, 0],
+		new material(150),
+		15 * 6
+	));
+	
+	camera = {
+		fovRad: degToRad(60),
+		aspect: gl.canvas.clientWidth / gl.canvas.clientHeight,
+		zNear: 0.1,
+		zFar: 2000,
+	}
 
 	gl.clearColor(0.0, 0.0, 0.0, 0.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -85,31 +132,7 @@ function drawScene(now) {
 	resizeCanvasToDisplaySize(gl.canvas);
 	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-	gl.useProgram(program);
-	gl.bindVertexArray(fvao);
-
-	let constUniforms = {
-		u_color: [[0.2, 1, 0.2, 1], Type.vec3],
-		u_reverseLightDirection: [Vector3.unitVec([0.5, 0.7, 1]), Type.vec3],
-		u_lightWorldPosition: [[200, 30, 50], Type.vec3],
-		u_lightColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
-		u_specularColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
-		u_innerLimit: [1.0, Type.float],
-		u_outerLimit: [5.0, Type.float],
-		u_lightDirection: [[1, 2, 30], Type.vec3],
-	};
-	setUniforms(gl, program, constUniforms);
-
-	let fovRad = degToRad(60);
-	let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-	let zNear = 0.1;
-	let zFar = 2000;
-	let radius = 200;
-
-	let projectionMatrix = mat4.perspective(fovRad, aspect, zNear, zFar);
-	let cameraMatrix = mat4.identity();
-
-	// cameraMatrix = lookingAtDemo(dTime);
+	let projectionMatrix = mat4.perspective(camera.fovRad, camera.aspect, camera.zNear, camera.zFar);
 
 	let moveMat = mat4.translation(trans[0], trans[1], trans[2]);
 	moveMat = mat4.mRotateY(moveMat, degToRad(rot[1]));
@@ -120,6 +143,7 @@ function drawScene(now) {
 	trans[0] += moveVec[1];
 	trans[2] += moveVec[0];
 
+	let cameraMatrix = mat4.identity();
 	cameraMatrix = mat4.mTranslation(cameraMatrix, trans[0], trans[1], trans[2]);
 	cameraMatrix = mat4.mRotateY(cameraMatrix, degToRad(rot[0]));
 	cameraMatrix = mat4.mRotateX(cameraMatrix, degToRad(rot[1]));
@@ -129,29 +153,21 @@ function drawScene(now) {
 
 	let viewProjectionMatrix = mat4.multiply(projectionMatrix, viewMatrix);
 
-	let objects = [];
-	let num = 15;
-	for (let i = 0; i < num; ++i) {
-		let angle = i * Math.PI * 2 / num;
+	for (let object of objectsToDraw) {
 
-		let x = Math.cos(angle) * radius;
-		let z = Math.sin(angle) * radius;
+		gl.useProgram(object.program);
+		gl.bindVertexArray(object.vao);
+		setUniforms(gl, object.program, constUniforms);
 
-		objects.push(new object([x, 0, z], [0, angle, 0], new material(150)));
-	}
-
-	for (let object of objects) {
-		let tr = object.translation;
-		let ro = object.rotation;
-		let worldMatrix = mat4.translation(tr[0], tr[1], tr[2]);
-		worldMatrix = mat4.mRotateX(worldMatrix, ro[0]);
-		worldMatrix = mat4.mRotateY(worldMatrix, ro[1]);
-		worldMatrix = mat4.mRotateZ(worldMatrix, ro[2]);
+		let worldMatrix = mat4.translation(object.translation[0], object.translation[1], object.translation[2]);
+		worldMatrix = mat4.mRotateX(worldMatrix, now);
+		worldMatrix = mat4.mRotateY(worldMatrix, now);
+		worldMatrix = mat4.mRotateZ(worldMatrix, now);
 		worldMatrix = mat4.mScaling(worldMatrix, 1.2, 1.2, 1.2);
 		let worldViewProjectionMatrix = mat4.multiply(viewProjectionMatrix, worldMatrix);
 		let worldInverseTransposeMatrix = mat4.transpose(mat4.inverse(worldMatrix));
 
-		let uniforms = {
+		object.uniforms = {
 			u_worldViewProjection: [worldViewProjectionMatrix, Type.mat4],
 			u_worldInverseTranspose: [worldInverseTransposeMatrix, Type.mat4],
 			u_world: [worldMatrix, Type.mat4],
@@ -162,34 +178,10 @@ function drawScene(now) {
 			u_shininess: [object.material.shininess, Type.float],
 		};
 
-		setUniforms(gl, program, uniforms);
+		setUniforms(gl, object.program, object.uniforms);
 
-		let primitiveType = gl.TRIANGLES;
-		let offset = 0;
-		let count = 16 * 6;
-		gl.drawArrays(primitiveType, offset, count);
+		gl.drawArrays(gl.TRIANGLES, 0, object.vertexes);
 	}
-
-	// gl.useProgram(program);
-	// console.log(cvao);
-	gl.bindVertexArray(cvao);
-	let worldMatrix = mat4.scaling(50, 100, 50);
-	worldMatrix = mat4.mTranslation(worldMatrix, 0, -1, 0);
-	let worldViewProjectionMatrix = mat4.multiply(viewProjectionMatrix, worldMatrix);
-	let worldInverseTransposeMatrix = mat4.transpose(mat4.inverse(worldMatrix));
-
-	let uniforms = {
-		u_worldViewProjection: [worldViewProjectionMatrix, Type.mat4],
-		u_worldInverseTranspose: [worldInverseTransposeMatrix, Type.mat4],
-		u_world: [worldMatrix, Type.mat4],
-		u_viewWorldPosition: [[
-			cameraMatrix[12],
-			cameraMatrix[13],
-			cameraMatrix[14],], Type.vec3],
-		u_shininess: [150.0, Type.float],
-	};
-	setUniforms(gl, program, uniforms);
-	gl.drawArrays(gl.TRIANGLES, 0, 15 * 3);
 
 	updateValues(rot, trans);
 	requestAnimationFrame(drawScene);
