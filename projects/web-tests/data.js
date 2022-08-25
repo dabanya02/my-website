@@ -226,9 +226,9 @@ export async function parseMTL(text) {
 		map_Kd(parts, unparsedArgs) { curMaterial.diffuseMap = parseMapArgs(unparsedArgs); },
 		map_Ns(parts, unparsedArgs) { curMaterial.specularMap = parseMapArgs(unparsedArgs); },
 		map_Bump(parts, unparsedArgs) { curMaterial.normalMap = parseMapArgs(unparsedArgs); },
-		Ni(parts) { curMaterial.opticalDensity = parseFloat(parts[0]); },
-		d(parts) { curMaterial.opacity = parseFloat(parts[0]); },
-		illum(parts) { curMaterial.illum = parseInt(parts[0]); },
+		Ni(parts) { curMaterial.opticalDensity = [parseFloat(parts[0]), Type.float]; },
+		d(parts) { curMaterial.opacity = [parseFloat(parts[0]), Type.float]; },
+		illum(parts) { curMaterial.illum = [parseFloat(parts[0]), Type.float]; },
 	}
 
 	// This is nearly the same as the parseOBJ function

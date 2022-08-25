@@ -47,6 +47,6 @@ void main() {
   float specular = pow(dot(normal, halfVector), u_shininess);
   
   outColor = texture(u_texture, v_texcoord);
-  // outColor.rgb *= light * u_lightColor;
-  // outColor.rgb += specular * u_specularColor;
+  outColor.rgb *= light * u_lightColor;
+  outColor.rgb += specular * u_specularColor;
 }

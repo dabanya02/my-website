@@ -10,7 +10,10 @@ import uniform from "./uniform.js";
 import object from "./object.js"
 import material from "./material.js"
 
+/** @type {WebGLRenderingContext} */
 let gl;
+
+/** @type {HTMLCanvasElement} */
 let canvas;
 
 let objectsToDraw = [];
@@ -35,7 +38,10 @@ let constUniforms = {
 	u_outerLimit: [5.0, Type.float],
 	u_lightDirection: [[1, 2, 30], Type.vec3],
 	u_ambient: [[0.2, 0.2, 0.2, 1], Type.vec4],
+	u_ambientLight: [[0.2, 0.2, 0.2], Type.vec3],
 };
+
+let textures = [];
 
 async function main() {
 
@@ -49,63 +55,62 @@ async function main() {
 	let colorProgram = await createProgramFromSource(gl, "shader.vert", "color.frag");
 	let objProgram = await createProgramFromSource(gl, "shader.vert", "mtl.frag");
 
-	// let fData = await fetchJSONData('f.json');
-	// let fGeometry = correctFVertices(new Float32Array(fData.Geometry));
-	// let fTexcoord = new Float32Array(fData.TextureCoords);
-	// let fNormals = new Float32Array(fData.Normals);
-	// let fObject = {
-	// 	a_position: new attribute(fGeometry, 3, false),
-	// 	a_texcoord: new attribute(fTexcoord, 2, true),
-	// 	a_normal: new attribute(fNormals, 3, false),
-	// }
+	let fData = await fetchJSONData('f.json');
+	let fGeometry = correctFVertices(new Float32Array(fData.Geometry));
+	let fTexcoord = new Float32Array(fData.TextureCoords);
+	let fNormals = new Float32Array(fData.Normals);
+	let fObject = {
+		a_position: new attribute(fGeometry, 3, false),
+		a_texcoord: new attribute(fTexcoord, 2, true),
+		a_normal: new attribute(fNormals, 3, false),
+	}
 
-	// let num = 15;
-	// for (let i = 0; i < num; ++i) {
-	// 	let radius = 200;
-	// 	let angle = i * Math.PI * 2 / num;
+	let num = 15;
+	for (let i = 0; i < num; ++i) {
+		let radius = 200;
+		let angle = i * Math.PI * 2 / num;
 
-	// 	let x = Math.cos(angle) * radius;
-	// 	let z = Math.sin(angle) * radius;
+		let x = Math.cos(angle) * radius;
+		let z = Math.sin(angle) * radius;
 
-	// 	let worldMatrix = mat4.identity();
+		let worldMatrix = mat4.identity();
 
-	// 	// make a update uniform function for the program to run
-	// 	objectsToDraw.push(new object(
-	// 		program,
-	// 		setAttributesAndCreateVAO(gl, program, fObject),
-	// 		{
-	// 			u_world: [worldMatrix, Type.mat4],
-	// 			u_shininess: [150, Type.float],
-	// 		},
-	// 		[x, 0, z],
-	// 		[angle, angle, angle],
-	// 		[1.2, 1.2, 1.2],
-	// 		16 * 6
-	// 	));
-	// }
+		// make a update uniform function for the program to run
+		objectsToDraw.push(new object(
+			program,
+			setAttributesAndCreateVAO(gl, program, fObject),
+			{
+				u_world: [worldMatrix, Type.mat4],
+				u_shininess: [150, Type.float],
+			},
+			[x, 0, z],
+			[angle, angle, angle],
+			[1.2, 1.2, 1.2],
+			16 * 6
+		));
+	}
 
 	let objFile = await fetchTextData("resources/senko.obj");
 	let mtlFile = await fetchTextData("resources/senko.mtl");
 	const joeObject = await parseOBJ(objFile);
 	const materials = await parseMTL(mtlFile + '\n');
-	
-	const textures = {};
 
 	let imagesToLoad = new Array();
 
 	// creates texture for all the maps
+
+
 	for (const material of Object.values(materials)) {
 		Object.entries(material)
 			.filter(([key]) => key.endsWith('Map')) // get all maps from materials
 			.forEach(([key, filename]) => { // name of map and the address
-				if (!imagesToLoad.find([key, filename]))
-					imagesToLoad.push([key, filename]);
+
 			})
 	};
 
 	const defaultMaterial = {
 		diffuse: [[1, 1, 1], Type.vec3],
-		diffuseMap: [0, Type.sampler2D],
+		// diffuseMap: [0, Type.sampler2D],
 		ambient: [[0, 0, 0], Type.vec3],
 		specular: [[1, 1, 1], Type.vec3],
 		shininess: [400, Type.float],
@@ -114,7 +119,7 @@ async function main() {
 
 	joeObject.geometries.map(({ material, data }) => {
 
-		console.log(materials[material]); 
+		// console.log(materials[material]); 
 
 		let obj = new object(
 			objProgram,
@@ -124,7 +129,7 @@ async function main() {
 				u_ambientLight: [0.2, 0.2, 0.2],
 				...defaultMaterial,
 				...materials[material],
-				diffuseMap: defaultMaterial.diffuseMap,
+				// diffuseMap: defaultMaterial.diffuseMap,
 			},
 			[0, -100, 0],
 			[0, 0, 0],
@@ -133,13 +138,47 @@ async function main() {
 		);
 
 		objectsToDraw.push(obj);
-		console.log(obj.uniforms);
+		// console.log(obj.uniforms);
 	});
 
-	// let texture = gl.createTexture();
-	// gl.bindTexture(gl.TEXTURE_2D, texture);
-	// gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
-	// loadImage(gl, "./resources/texture.png", texture);
+	let texture = gl.createTexture();
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 255, 255, 255]));
+
+	loadImage("./resources/textures/Clothes2_baseColor.jpeg",
+		function (image) {
+			let tex = gl.createTexture();
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, tex);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+			gl.generateMipmap(gl.TEXTURE_2D);
+		});
+
+	let texture2 = gl.createTexture();
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, texture2);
+	// gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 255, 255]));
+
+	let image = new Image;
+	image.src = "./resources/textures/Clothes2_baseColor.jpeg";
+	image.addEventListener('load', function () {
+		// gl.activeTexture(gl.TEXTURE1);
+		// gl.bindTexture(gl.texture_2D, );
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+		gl.generateMipmap(gl.TEXTURE_2D);
+	});
+
+	// loadImage("./resources/white.png",
+	// 	function (image) {
+	// 		let tex = gl.createTexture();
+	// 		gl.activeTexture(gl.TEXTURE1);
+	// 		gl.bindTexture(gl.TEXTURE_2D, tex);
+	// 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+	// 		gl.generateMipmap(gl.TEXTURE_2D);
+	// 	});
+
+	textures.push(texture, texture2);
 
 	let coneObject = createConeObject(15);
 	objectsToDraw.push(new object(
@@ -199,7 +238,7 @@ function drawScene(now) {
 	let viewMatrix = mat4.inverse(cameraMatrix);
 
 	let viewProjectionMatrix = mat4.multiply(projectionMatrix, viewMatrix);
-
+	let a = false;
 	for (let object of objectsToDraw) {
 
 		gl.useProgram(object.program);
@@ -229,10 +268,23 @@ function drawScene(now) {
 				cameraMatrix[14],], Type.vec3],
 		})
 
-		for (let texture of object.textures) {
-			gl.activeTexture(gl.TEXTURE0 + texture);
-			gl.bindTexture(textures[texture]);
-			gl.uniform1i()
+		// let location = gl.getUniformLocation(object.program, "diffuseMap");
+		// gl.activeTexture(gl.TEXTURE1);
+		// gl.bindTexture(gl.TEXTURE_2D, textures[0]);
+		// gl.uniform1i(location, 0);
+
+		if (a) {
+			let location = gl.getUniformLocation(object.program, "diffuseMap");
+			// gl.activeTexture(gl.TEXTURE0);
+			// gl.bindTexture(gl.TEXTURE_2D, textures[0]);
+			gl.uniform1i(location, 0);
+			a = !a;
+		} else {
+			let location = gl.getUniformLocation(object.program, "diffuseMap");
+			// gl.activeTexture(gl.TEXTURE1);
+			// gl.bindTexture(gl.TEXTURE_2D, textures[1]);
+			gl.uniform1i(location, 1);
+			a = !a;
 		}
 
 		gl.drawArrays(gl.TRIANGLES, 0, object.vertexes);

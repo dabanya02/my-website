@@ -35,11 +35,11 @@ export function loadImages(urls, callback) {
 	}
 }
 
-export function loadImage(url, callback) {
-	let image = new Image();
-	image.src = url;
+export function loadImage (url, callback) {
+  let image = new Image();
+  image.src = url;
 	image.onload = callback(image);
-	return image;
+  return image;
 }
 
 // export function loadImage(gl, src, texture, textureNum) {
@@ -142,7 +142,7 @@ export function setUniforms(gl, program, uniforms) {
 			case (Type.mat4):
 				gl.uniformMatrix4fv(location, false, data);
 				break;
-			case (Type.sampler2D):
+		case (Type.sampler2D):
 				gl.uniform1i(location, data);
 				break;
 			default:

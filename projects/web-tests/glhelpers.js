@@ -42,6 +42,14 @@ export function loadImage(url, callback) {
 	return image;
 }
 
+export function loadImageEL(url, callback) {
+	let image = new Image();
+	image.src = url;
+	image.addEventListener('load', function() {
+		callback(image);
+	});
+}
+
 // export function loadImage(gl, src, texture, textureNum) {
 // 	let image = new Image;
 // 	image.src = src;

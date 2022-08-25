@@ -3,14 +3,17 @@ import { fetchTextData, fetchJSONData, parseOBJ, parseMTL } from "./data.js"
 import { setupControls, updateValues } from "./controls.js"
 import { createSphereObject, createConeObject } from "./primitives.js"
 import { Vector3 } from "./vector.js";
-import { Type, setUniforms, loadImage, loadImages, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource } from "./glhelpers.js"
+import { Type, setUniforms, loadImage, loadImages, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource, loadImageEL } from "./glhelpers.js"
 import { degToRad, radToDeg, randomInt } from "./math.js";
 import attribute from "./attribute.js";
 import uniform from "./uniform.js";
 import object from "./object.js"
 import material from "./material.js"
 
+/** @type {WebGLRenderingContext} */
 let gl;
+
+/** @type {HTMLCanvasElement} */
 let canvas;
 
 let objectsToDraw = [];
@@ -35,13 +38,17 @@ let constUniforms = {
 	u_outerLimit: [5.0, Type.float],
 	u_lightDirection: [[1, 2, 30], Type.vec3],
 	u_ambient: [[0.2, 0.2, 0.2, 1], Type.vec4],
+	u_ambientLight: [[0.05, 0.05, 0.05], Type.vec3],
 };
+
+let textures = [];
 
 async function main() {
 
 	canvas = document.querySelector("#webgl");
 	gl = canvas.getContext("webgl2");
 	if (!gl) alert("Failed to get gl context");
+
 
 	setupControls(transSpeed, rot, canvas);
 
@@ -61,7 +68,7 @@ async function main() {
 
 	// let num = 15;
 	// for (let i = 0; i < num; ++i) {
-	// 	let radius = 200;
+	// 	let radius = 500;
 	// 	let angle = i * Math.PI * 2 / num;
 
 	// 	let x = Math.cos(angle) * radius;
@@ -88,71 +95,139 @@ async function main() {
 	let mtlFile = await fetchTextData("resources/senko.mtl");
 	const joeObject = await parseOBJ(objFile);
 	const materials = await parseMTL(mtlFile + '\n');
-	
-	const textures = {};
 
-	let imagesToLoad = new Array();
-
+	let texIdx = 1;
 	// creates texture for all the maps
 	for (const material of Object.values(materials)) {
 		Object.entries(material)
 			.filter(([key]) => key.endsWith('Map')) // get all maps from materials
 			.forEach(([key, filename]) => { // name of map and the address
-				if (!imagesToLoad.find([key, filename]))
-					imagesToLoad.push([key, filename]);
+				let texture = textures[filename];
+				if (!texture) {
+					loadImageEL("./resources/" + filename, function (image) {
+						let tex = gl.createTexture();
+						gl.activeTexture(gl.TEXTURE0 + textures[filename]);
+						gl.bindTexture(gl.TEXTURE_2D, tex);
+						gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+						gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+						gl.generateMipmap(gl.TEXTURE_2D);
+					});
+					textures[filename] = texIdx;
+					texIdx++;
+				}
+				material[key] = [textures[filename], Type.sampler2D];
 			})
 	};
+
+	// loadImageEL("./resources/" + "textures/Body_baseColor.jpeg", function (image) {
+	// 	let tex = gl.createTexture();
+	// 	gl.activeTexture(gl.TEXTURE0 + 1);
+	// 	gl.bindTexture(gl.TEXTURE_2D, tex);
+	// 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+	// 	gl.generateMipmap(gl.TEXTURE_2D);
+	// })
 
 	const defaultMaterial = {
 		diffuse: [[1, 1, 1], Type.vec3],
 		diffuseMap: [0, Type.sampler2D],
 		ambient: [[0, 0, 0], Type.vec3],
-		specular: [[1, 1, 1], Type.vec3],
+		specular: [[0.2, 0.2, 0.2], Type.vec3],
 		shininess: [400, Type.float],
 		opacity: [1, Type.float],
 	};
 
-	joeObject.geometries.map(({ material, data }) => {
 
-		console.log(materials[material]); 
+	const radsPerUnit = Math.PI / 5; // amount increase per vertical level
+	const horUnitCount = 5 * 2;
 
-		let obj = new object(
-			objProgram,
-			setAttributesAndCreateVAO(gl, program, data),
-			{
-				u_world: [mat4.identity(), Type.mat4],
-				u_ambientLight: [0.2, 0.2, 0.2],
-				...defaultMaterial,
-				...materials[material],
-				diffuseMap: defaultMaterial.diffuseMap,
-			},
-			[0, -100, 0],
-			[0, 0, 0],
-			[30, 30, 30],
-			data.a_position.buffer.length / 3
-		);
+	let points = [];
+	let vertAngle = -Math.PI / 2; // Top
 
-		objectsToDraw.push(obj);
-		console.log(obj.uniforms);
-	});
+	for (let vertUnit = 0; vertUnit < 5; vertUnit++) {
+		let radius = Math.cos(vertAngle) * 150;
+		let height = Math.sin(vertAngle) * 150;
+		let horAngle = 0;
+		for (let horUnit = 0; horUnit <= horUnitCount; horUnit++) {
+			let x = Math.cos(horAngle) * radius - 300;
+			let z = Math.sin(horAngle) * radius;
+			points = [x, height, z];
+			joeObject.geometries.map(({ material, data }) => {
+				let obj = new object(
+					objProgram,
+					setAttributesAndCreateVAO(gl, program, data),
+					{
+						u_world: [mat4.identity(), Type.mat4],
+						u_ambientLight: [0.2, 0.2, 0.2],
+						...defaultMaterial,
+						...materials[material],
+					},
+					points,
+					[horAngle, 0, 0],
+					[30, 30, 30],
+					data.a_position.buffer.length / 3
 
-	// let texture = gl.createTexture();
-	// gl.bindTexture(gl.TEXTURE_2D, texture);
-	// gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
-	// loadImage(gl, "./resources/texture.png", texture);
+				);
+				horAngle -= radsPerUnit;
+				objectsToDraw.push(obj);
+			}
+			);
+		}
+		vertAngle += radsPerUnit;
+	}
 
-	let coneObject = createConeObject(15);
-	objectsToDraw.push(new object(
-		program,
-		setAttributesAndCreateVAO(gl, program, coneObject),
-		{
-			u_world: [mat4.identity(), Type.mat4],
-			u_shininess: [150, Type.float]
-		},
-		[0, 0, 0],
-		[0, 0, 0],
-		15 * 6
-	));
+	// let num = 35;
+	// for (let i = 0; i < num; ++i) {
+	// let radius = 500;
+	// let angle = i * Math.PI * 2 / num;
+
+	// let x = Math.cos(angle) * radius;
+	// let z = Math.sin(angle) * radius;
+
+	// 	let worldMatrix = mat4.identity();
+
+
+	// });
+
+	// }								// 
+
+
+	// joeObject.geometries.map(({ material, data }) => {
+	// 	let obj = new object(
+	// 		objProgram,
+	// 		setAttributesAndCreateVAO(gl, program, data),
+	// 		{
+	// 			u_world: [mat4.identity(), Type.mat4],
+	// 			u_ambientLight: [0.2, 0.2, 0.2],
+	// 			...defaultMaterial,
+	// 			...materials[material],
+	// 		},
+	// 		[0, -120, 0],
+	// 		[0, 0, 0],
+	// 		[30, 30, 30],
+	// 		data.a_position.buffer.length / 3
+	// 	);
+
+	// 	objectsToDraw.push(obj);
+	// });
+
+
+	let texture = gl.createTexture();
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 255, 255]));
+
+	// let coneObject = createConeObject(15);
+	// objectsToDraw.push(new object(
+	// 	program,
+	// 	setAttributesAndCreateVAO(gl, program, coneObject),
+	// 	{
+	// 		u_world: [mat4.identity(), Type.mat4],
+	// 		u_shininess: [150, Type.float]
+	// 	},
+	// 	[0, 0, 0],
+	// 	[0, 0, 0],
+	// 	15 * 6
+	// ));
 
 	camera = {
 		fovRad: degToRad(60),
@@ -187,8 +262,8 @@ function drawScene(now) {
 	moveMat = mat4.mRotateZ(moveMat, degToRad(rot[0]));
 
 	let moveVec = mat4.transformVector(moveMat, transSpeed);
-	trans[0] += moveVec[1];
-	trans[2] += moveVec[0];
+	trans[0] += moveVec[1] * dTime * 144;
+	trans[2] += moveVec[0] * dTime * 144;
 
 	let cameraMatrix = mat4.identity();
 	cameraMatrix = mat4.mTranslation(cameraMatrix, trans[0], trans[1], trans[2]);
@@ -199,7 +274,7 @@ function drawScene(now) {
 	let viewMatrix = mat4.inverse(cameraMatrix);
 
 	let viewProjectionMatrix = mat4.multiply(projectionMatrix, viewMatrix);
-
+	let a = false;
 	for (let object of objectsToDraw) {
 
 		gl.useProgram(object.program);
@@ -228,12 +303,6 @@ function drawScene(now) {
 				cameraMatrix[13],
 				cameraMatrix[14],], Type.vec3],
 		})
-
-		for (let texture of object.textures) {
-			gl.activeTexture(gl.TEXTURE0 + texture);
-			gl.bindTexture(textures[texture]);
-			gl.uniform1i()
-		}
 
 		gl.drawArrays(gl.TRIANGLES, 0, object.vertexes);
 	}
