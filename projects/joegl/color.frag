@@ -11,16 +11,19 @@ in vec3 v_surfaceToLight;
 in vec3 v_surfaceToView;
 
 uniform vec3 u_reverseLightDirection;
-uniform vec3 diffuse;
-uniform vec3 ambient;
-uniform vec3 emissive;
-uniform vec3 specular;
-uniform float shininess;
-uniform float opacity;
-uniform vec3 u_ambientLight;
+uniform vec4 u_color;
+uniform sampler2D u_texture;
+uniform float u_shininess;
+uniform vec3 u_lightColor;
+uniform vec3 u_specularColor;
+uniform vec3 u_lightDirection;
+uniform float u_innerLimit;
+uniform float u_outerLimit;
+uniform vec4 u_colorMult;
+uniform vec4 u_ambient;
+uniform vec4 u_diffuse;
 
-uniform sampler2D diffuseMap;
-
+// we need to declare an output for the fragment shader
 out vec4 outColor;
  
 void main() {
@@ -37,26 +40,17 @@ void main() {
   vec3 halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
   
   // The dot product between the direction of the light and the angle
-  float dotFromDirection = dot(surfaceToLightDirection, u_reverseLightDirection);
-
+  float dotFromDirection = dot(surfaceToLightDirection, -u_lightDirection);
+  // modifier 
+  float inLight = smoothstep(u_outerLimit, u_innerLimit, dotFromDirection);
   // light hitting plane
-  float light = dot(normal, surfaceToLightDirection) * 0.5 + 0.5;
+  float light = dot(normal, surfaceToLightDirection);
   // specular highlights - strengthen at the points where the light is in the angle thats hitting our view
-  float specularLight = pow(clamp(dot(normal, halfVector), 0.0, 1.0), shininess);
-
-  vec4 diffuseMapColor = texture(diffuseMap, v_texcoord);
-  vec3 effectiveDiffuse = diffuse * diffuseMapColor.rgb // * v_color.rgb
-	;
-  float effectiveOpacity = opacity * diffuseMapColor.a // * v_color.a
-	;
+  float specular = pow(dot(normal, halfVector), u_shininess);
   
-  outColor = vec4(
-				  emissive 
-				  // ambient * u_ambientLight
-				  // effectiveDiffuse * light
-				  // specular * specularLight
-				  ,effectiveOpacity);
-
-						// outColor = vec4(diffuseMapColor);
-						
+  outColor = u_diffuse;
+    outColor += u_ambient;
+  outColor.rgb *= light * u_lightColor;
+  outColor.rgb += specular * u_specularColor;
+  // outColor.rgb *= u_colorMult;
 }

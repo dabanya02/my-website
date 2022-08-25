@@ -3,7 +3,7 @@ import { fetchTextData, fetchJSONData, parseOBJ, parseMTL } from "./data.js"
 import { setupControls, updateValues } from "./controls.js"
 import { createSphereObject, createConeObject } from "./primitives.js"
 import { Vector3 } from "./vector.js";
-import { Type, setUniforms, loadImage, loadImages, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource } from "./glhelpers.js"
+import { Type, setUniforms, loadImage, loadImages, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource, loadImageEL } from "./glhelpers.js"
 import { degToRad, radToDeg, randomInt } from "./math.js";
 import attribute from "./attribute.js";
 import uniform from "./uniform.js";
@@ -32,13 +32,24 @@ let constUniforms = {
 	u_color: [[0.2, 1, 0.2, 1], Type.vec4],
 	u_reverseLightDirection: [Vector3.unitVec([0.5, 0.7, 1]), Type.vec3],
 	u_lightWorldPosition: [[200, 30, 50], Type.vec3],
-	u_lightColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
-	u_specularColor: [Vector3.unitVec([1, 1, 1]), Type.vec3],
+	u_lightColor: [[1, 1, 1], Type.vec3],
+	u_specularColor: [[1, 1, 1], Type.vec3],
 	u_innerLimit: [1.0, Type.float],
 	u_outerLimit: [5.0, Type.float],
 	u_lightDirection: [[1, 2, 30], Type.vec3],
 	u_ambient: [[0.2, 0.2, 0.2, 1], Type.vec4],
-	u_ambientLight: [[0.2, 0.2, 0.2], Type.vec3],
+	u_ambientLight: [[0.05, 0.05, 0.05], Type.vec3],
+};
+
+
+const defaultMaterial = {
+	diffuse: [[1, 1, 1], Type.vec3],
+	diffuseMap: [0, Type.sampler2D],
+	ambient: [[0, 0, 0], Type.vec3],
+	specular: [[0.2, 0.2, 0.2], Type.vec3],
+	specularMap: [0, Type.sampler2D],
+	shininess: [400, Type.float],
+	opacity: [1, Type.float],
 };
 
 let textures = [];
@@ -49,11 +60,12 @@ async function main() {
 	gl = canvas.getContext("webgl2");
 	if (!gl) alert("Failed to get gl context");
 
+
 	setupControls(transSpeed, rot, canvas);
 
 	let program = await createProgramFromSource(gl, "shader.vert", "shader.frag");
 	let colorProgram = await createProgramFromSource(gl, "shader.vert", "color.frag");
-	let objProgram = await createProgramFromSource(gl, "shader.vert", "mtl.frag");
+	let objProgram = await createProgramFromSource(gl, "mtl.vert", "mtl.frag");
 
 	let fData = await fetchJSONData('f.json');
 	let fGeometry = correctFVertices(new Float32Array(fData.Geometry));
@@ -65,62 +77,96 @@ async function main() {
 		a_normal: new attribute(fNormals, 3, false),
 	}
 
-	let num = 15;
-	for (let i = 0; i < num; ++i) {
-		let radius = 200;
-		let angle = i * Math.PI * 2 / num;
+	// make a update uniform function for the program to run
+	objectsToDraw.push(new object(
+		program,
+		setAttributesAndCreateVAO(gl, program, fObject),
+		{
+			u_world: [mat4.identity(), Type.mat4],
+			u_shininess: [150, Type.float],
+		},
+		[200, 0, -300],
+		[0, 0, 0],
+		[1.2, 1.2, 1.2],
+		16 * 6
+	));
+	const itr = 10;
 
-		let x = Math.cos(angle) * radius;
-		let z = Math.sin(angle) * radius;
+	const radsPerUnit = Math.PI / itr; // amount increase per vertical level
+	const horUnitCount = itr * 2;
 
-		let worldMatrix = mat4.identity();
+	let points = [];
+	let vertAngle = -Math.PI / 2; // Top
 
-		// make a update uniform function for the program to run
-		objectsToDraw.push(new object(
-			program,
-			setAttributesAndCreateVAO(gl, program, fObject),
-			{
-				u_world: [worldMatrix, Type.mat4],
-				u_shininess: [150, Type.float],
-			},
-			[x, 0, z],
-			[angle, angle, angle],
-			[1.2, 1.2, 1.2],
-			16 * 6
-		));
+	let joeobjSource = await fetchTextData("resources/joegl.obj");
+	let joemtlSource = await fetchTextData("resources/joegl.mtl");
+	const joeobj = await parseOBJ(joeobjSource);
+	const joemtl = await parseMTL(joemtlSource + '\n');
+
+	for (let vertUnit = 0; vertUnit < itr; vertUnit++) {
+		let radius = Math.cos(vertAngle) * 150;
+		let height = Math.sin(vertAngle) * 150;
+		let horAngle = 0;
+		for (let horUnit = 0; horUnit <= horUnitCount; horUnit++) {
+			let x = Math.cos(horAngle) * radius - 300;
+			let z = Math.sin(horAngle) * radius;
+			points = [x, height, z - 200];
+			joeobj.geometries.map(({ material, data }) => {
+				let obj = new object(
+					objProgram,
+					setAttributesAndCreateVAO(gl, program, data),
+					{
+						u_world: [mat4.identity(), Type.mat4],
+						u_ambientLight: [0.2, 0.2, 0.2],
+						...defaultMaterial,
+						...joemtl[material],
+						diffuseMap: [1, Type.sampler2D],
+					},
+					points,
+					[0, 180, 0],
+					[10, 10, 10],
+					data.a_position.buffer.length / 3
+
+				);
+				horAngle -= radsPerUnit;
+				objectsToDraw.push(obj);
+			}
+			);
+		}
+		vertAngle += radsPerUnit;
 	}
 
 	let objFile = await fetchTextData("resources/senko.obj");
 	let mtlFile = await fetchTextData("resources/senko.mtl");
-	const joeObject = await parseOBJ(objFile);
-	const materials = await parseMTL(mtlFile + '\n');
+	const senko = await parseOBJ(objFile);
+	const senkoMat = await parseMTL(mtlFile + '\n');
 
-	let imagesToLoad = new Array();
-
+	let texIdx = 2;
 	// creates texture for all the maps
-
-
-	for (const material of Object.values(materials)) {
+	for (const material of Object.values(senkoMat)) {
 		Object.entries(material)
 			.filter(([key]) => key.endsWith('Map')) // get all maps from materials
 			.forEach(([key, filename]) => { // name of map and the address
-
+				let texture = textures[filename];
+				if (!texture) {
+					loadImageEL("./resources/" + filename, function (image) {
+						let tex = gl.createTexture();
+						gl.activeTexture(gl.TEXTURE0 + textures[filename]);
+						gl.bindTexture(gl.TEXTURE_2D, tex);
+						gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+						gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+						gl.generateMipmap(gl.TEXTURE_2D);
+					});
+					textures[filename] = texIdx;
+					texIdx++;
+				}
+				material[key] = [textures[filename], Type.sampler2D];
 			})
 	};
 
-	const defaultMaterial = {
-		diffuse: [[1, 1, 1], Type.vec3],
-		// diffuseMap: [0, Type.sampler2D],
-		ambient: [[0, 0, 0], Type.vec3],
-		specular: [[1, 1, 1], Type.vec3],
-		shininess: [400, Type.float],
-		opacity: [1, Type.float],
-	};
 
-	joeObject.geometries.map(({ material, data }) => {
 
-		// console.log(materials[material]); 
-
+	senko.geometries.map(({ material, data }) => {
 		let obj = new object(
 			objProgram,
 			setAttributesAndCreateVAO(gl, program, data),
@@ -128,70 +174,75 @@ async function main() {
 				u_world: [mat4.identity(), Type.mat4],
 				u_ambientLight: [0.2, 0.2, 0.2],
 				...defaultMaterial,
-				...materials[material],
-				// diffuseMap: defaultMaterial.diffuseMap,
+				...senkoMat[material],
 			},
-			[0, -100, 0],
+			[0, -120, -400],
 			[0, 0, 0],
 			[30, 30, 30],
 			data.a_position.buffer.length / 3
 		);
 
 		objectsToDraw.push(obj);
-		// console.log(obj.uniforms);
 	});
 
-	let texture = gl.createTexture();
+
+
+	let lanternOBJ = await fetchTextData("resources/lantern/lantern.obj");
+	let lanternMTL = await fetchTextData("resources/lantern/lantern.mtl");
+	const lantern = await parseOBJ(lanternOBJ);
+	const lanternmtl = await parseMTL(lanternMTL + '\n');
+
+	// creates texture for all the maps
+	for (const material of Object.values(lanternmtl)) {
+		Object.entries(material)
+			.filter(([key]) => key.endsWith('Map')) // get all maps from materials
+			.forEach(([key, filename]) => { // name of map and the address
+				let texture = textures[filename];
+				if (!texture) {
+					loadImageEL("./resources/lantern/" + filename, function (image) {
+						let tex = gl.createTexture();
+						gl.activeTexture(gl.TEXTURE0 + textures[filename]);
+						gl.bindTexture(gl.TEXTURE_2D, tex);
+						gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+						gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+						gl.generateMipmap(gl.TEXTURE_2D);
+					});
+					textures[filename] = texIdx;
+					texIdx++;
+				}
+				material[key] = [textures[filename], Type.sampler2D];
+			})
+	};
+
+	lantern.geometries.map(({ material, data }) => {
+		let obj = new object(
+			objProgram,
+			setAttributesAndCreateVAO(gl, program, data),
+			{
+				u_world: [mat4.identity(), Type.mat4],
+				u_ambientLight: [0.2, 0.2, 0.2],
+				...defaultMaterial,
+				...lanternmtl[material],
+			},
+			[-10, -30, -50],
+			[0, 0, 0],
+			[50, 50, 50],
+			data.a_position.buffer.length / 3
+		);
+
+		objectsToDraw.push(obj);
+	});
+
+
+	let white = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 255, 255, 255]));
+	gl.bindTexture(gl.TEXTURE_2D, white);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
 
-	loadImage("./resources/textures/Clothes2_baseColor.jpeg",
-		function (image) {
-			let tex = gl.createTexture();
-			gl.activeTexture(gl.TEXTURE0);
-			gl.bindTexture(gl.TEXTURE_2D, tex);
-			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-			gl.generateMipmap(gl.TEXTURE_2D);
-		});
-
-	let texture2 = gl.createTexture();
+	let purple = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, texture2);
-	// gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 255, 255]));
-
-	let image = new Image;
-	image.src = "./resources/textures/Clothes2_baseColor.jpeg";
-	image.addEventListener('load', function () {
-		// gl.activeTexture(gl.TEXTURE1);
-		// gl.bindTexture(gl.texture_2D, );
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-		gl.generateMipmap(gl.TEXTURE_2D);
-	});
-
-	// loadImage("./resources/white.png",
-	// 	function (image) {
-	// 		let tex = gl.createTexture();
-	// 		gl.activeTexture(gl.TEXTURE1);
-	// 		gl.bindTexture(gl.TEXTURE_2D, tex);
-	// 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-	// 		gl.generateMipmap(gl.TEXTURE_2D);
-	// 	});
-
-	textures.push(texture, texture2);
-
-	let coneObject = createConeObject(15);
-	objectsToDraw.push(new object(
-		program,
-		setAttributesAndCreateVAO(gl, program, coneObject),
-		{
-			u_world: [mat4.identity(), Type.mat4],
-			u_shininess: [150, Type.float]
-		},
-		[0, 0, 0],
-		[0, 0, 0],
-		15 * 6
-	));
+	gl.bindTexture(gl.TEXTURE_2D, purple);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 255, 255]));
 
 	camera = {
 		fovRad: degToRad(60),
@@ -226,8 +277,8 @@ function drawScene(now) {
 	moveMat = mat4.mRotateZ(moveMat, degToRad(rot[0]));
 
 	let moveVec = mat4.transformVector(moveMat, transSpeed);
-	trans[0] += moveVec[1];
-	trans[2] += moveVec[0];
+	trans[0] += moveVec[1] * dTime * 144;
+	trans[2] += moveVec[0] * dTime * 144;
 
 	let cameraMatrix = mat4.identity();
 	cameraMatrix = mat4.mTranslation(cameraMatrix, trans[0], trans[1], trans[2]);
@@ -246,13 +297,12 @@ function drawScene(now) {
 		setUniforms(gl, object.program, constUniforms);
 
 		let worldMatrix = mat4.translation(object.translation[0], object.translation[1], object.translation[2]);
-		// worldMatrix = mat4.mRotateX(worldMatrix, now);
-		// worldMatrix = mat4.mRotateY(worldMatrix, now);
-		// worldMatrix = mat4.mRotateZ(worldMatrix, now);
+		worldMatrix = mat4.mRotateX(worldMatrix, object.rotation[0]);
+		worldMatrix = mat4.mRotateY(worldMatrix, object.rotation[1]);
+		worldMatrix = mat4.mRotateZ(worldMatrix, object.rotation[2]);
 		worldMatrix = mat4.mScaling(worldMatrix, object.scaling[0], object.scaling[1], object.scaling[2]);
 		let worldViewProjectionMatrix = mat4.multiply(viewProjectionMatrix, worldMatrix);
 		let worldInverseTransposeMatrix = mat4.transpose(mat4.inverse(worldMatrix));
-		// console.log(object.uniforms);
 
 		setUniforms(gl, object.program, object.uniforms);
 
@@ -267,25 +317,6 @@ function drawScene(now) {
 				cameraMatrix[13],
 				cameraMatrix[14],], Type.vec3],
 		})
-
-		// let location = gl.getUniformLocation(object.program, "diffuseMap");
-		// gl.activeTexture(gl.TEXTURE1);
-		// gl.bindTexture(gl.TEXTURE_2D, textures[0]);
-		// gl.uniform1i(location, 0);
-
-		if (a) {
-			let location = gl.getUniformLocation(object.program, "diffuseMap");
-			// gl.activeTexture(gl.TEXTURE0);
-			// gl.bindTexture(gl.TEXTURE_2D, textures[0]);
-			gl.uniform1i(location, 0);
-			a = !a;
-		} else {
-			let location = gl.getUniformLocation(object.program, "diffuseMap");
-			// gl.activeTexture(gl.TEXTURE1);
-			// gl.bindTexture(gl.TEXTURE_2D, textures[1]);
-			gl.uniform1i(location, 1);
-			a = !a;
-		}
 
 		gl.drawArrays(gl.TRIANGLES, 0, object.vertexes);
 	}

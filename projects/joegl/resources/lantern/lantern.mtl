@@ -1,0 +1,27 @@
+# Blender MTL File: 'None'
+# Material Count: 2
+
+newmtl StingrayPBS1.001
+Ns 199.999995
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.545455 0.545455 0.545455
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump textures/lantern_Normal_OpenGL.jpg
+map_Kd textures/lantern_Base_Color.jpg
+map_Ns textures/lantern_Roughness.jpg
+map_d textures/lantern_Opacity.jpg
+refl textures/lantern_Metallic.jpg
+
+newmtl StingrayPBS2.001
+Ns 240.991744
+Ka 0.436364 0.436364 0.436364
+Kd 1.000000 1.000000 1.000000
+Ks 0.454545 0.454545 0.454545
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
