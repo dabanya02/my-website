@@ -3,7 +3,7 @@ import { fetchTextData, fetchJSONData, parseOBJ, parseMTL } from "./data.js"
 import { setupControls, updateValues } from "./controls.js"
 import { createSphereObject, createConeObject } from "./primitives.js"
 import { Vector3 } from "./vector.js";
-import { Type, setUniforms, loadImage, loadImages, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource, loadImageEL } from "./glhelpers.js"
+import { Type, setUniforms, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource, loadImageEL, getUniformLocationsFromProgram } from "./glhelpers.js"
 import { degToRad, radToDeg, randomInt } from "./math.js";
 import attribute from "./attribute.js";
 import uniform from "./uniform.js";
@@ -54,6 +54,10 @@ const defaultMaterial = {
 
 let textures = [];
 
+let programUniformLocations;
+let objProgramUniformLocations;
+
+
 async function main() {
 
 	canvas = document.querySelector("#webgl");
@@ -67,6 +71,9 @@ async function main() {
 	let colorProgram = await createProgramFromSource(gl, "shader.vert", "color.frag");
 	let objProgram = await createProgramFromSource(gl, "mtl.vert", "mtl.frag");
 
+	program.uniforms = getUniformLocationsFromProgram(gl, program);
+	objProgram.uniforms = getUniformLocationsFromProgram(gl, objProgram);
+	
 	let fData = await fetchJSONData('f.json');
 	let fGeometry = correctFVertices(new Float32Array(fData.Geometry));
 	let fTexcoord = new Float32Array(fData.TextureCoords);
@@ -117,7 +124,7 @@ async function main() {
 					setAttributesAndCreateVAO(gl, program, data),
 					{
 						u_world: [mat4.identity(), Type.mat4],
-						u_ambientLight: [0.2, 0.2, 0.2],
+						u_ambientLight: [[0.0, 0.0, 0.0], Type.vec3],
 						...defaultMaterial,
 						...joemtl[material],
 						diffuseMap: [1, Type.sampler2D],
@@ -172,7 +179,7 @@ async function main() {
 			setAttributesAndCreateVAO(gl, program, data),
 			{
 				u_world: [mat4.identity(), Type.mat4],
-				u_ambientLight: [0.2, 0.2, 0.2],
+				u_ambientLight: [[0.0, 0.0, 0.0], Type.vec3],
 				...defaultMaterial,
 				...senkoMat[material],
 			},
@@ -184,8 +191,6 @@ async function main() {
 
 		objectsToDraw.push(obj);
 	});
-
-
 
 	let lanternOBJ = await fetchTextData("resources/lantern/lantern.obj");
 	let lanternMTL = await fetchTextData("resources/lantern/lantern.mtl");
@@ -220,7 +225,7 @@ async function main() {
 			setAttributesAndCreateVAO(gl, program, data),
 			{
 				u_world: [mat4.identity(), Type.mat4],
-				u_ambientLight: [0.2, 0.2, 0.2],
+				u_ambientLight: [[0.0, 0.0, 0.0], Type.vec3],
 				...defaultMaterial,
 				...lanternmtl[material],
 			},
@@ -287,14 +292,13 @@ function drawScene(now) {
 	cameraMatrix = mat4.mRotateZ(cameraMatrix, degToRad(rot[2]));
 
 	let viewMatrix = mat4.inverse(cameraMatrix);
-
+	
 	let viewProjectionMatrix = mat4.multiply(projectionMatrix, viewMatrix);
-	let a = false;
 	for (let object of objectsToDraw) {
 
 		gl.useProgram(object.program);
 		gl.bindVertexArray(object.vao);
-		setUniforms(gl, object.program, constUniforms);
+		setUniforms(gl, constUniforms, object.program.uniforms);
 
 		let worldMatrix = mat4.translation(object.translation[0], object.translation[1], object.translation[2]);
 		worldMatrix = mat4.mRotateX(worldMatrix, object.rotation[0]);
@@ -304,11 +308,11 @@ function drawScene(now) {
 		let worldViewProjectionMatrix = mat4.multiply(viewProjectionMatrix, worldMatrix);
 		let worldInverseTransposeMatrix = mat4.transpose(mat4.inverse(worldMatrix));
 
-		setUniforms(gl, object.program, object.uniforms);
+		setUniforms(gl, object.uniforms, object.program.uniforms);
 
-		setUniforms(gl, object.program, object.material);
+		setUniforms(gl, object.material, object.program.uniforms);
 
-		setUniforms(gl, object.program, {
+		setUniforms(gl, {
 			u_worldViewProjection: [worldViewProjectionMatrix, Type.mat4],
 			u_worldInverseTranspose: [worldInverseTransposeMatrix, Type.mat4],
 			u_world: [worldMatrix, Type.mat4],
@@ -316,14 +320,13 @@ function drawScene(now) {
 				cameraMatrix[12],
 				cameraMatrix[13],
 				cameraMatrix[14],], Type.vec3],
-		})
-
+		}, object.program.uniforms)
 		gl.drawArrays(gl.TRIANGLES, 0, object.vertexes);
+		// debugger
+		
 	}
-
 	updateValues(rot, trans);
 	requestAnimationFrame(drawScene);
-
 }
 
 function lookingAtDemo(dTime) {

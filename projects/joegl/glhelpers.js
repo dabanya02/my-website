@@ -45,7 +45,7 @@ export function loadImage(url, callback) {
 export function loadImageEL(url, callback) {
 	let image = new Image();
 	image.src = url;
-	image.addEventListener('load', function() {
+	image.addEventListener('load', function () {
 		callback(image);
 	});
 }
@@ -125,35 +125,71 @@ export function resizeCanvasToDisplaySize(canvas) {
 	}
 }
 
-// taken from https://webglfundamentals.org/webgl/lessons/webgl-qna-how-can-i-get-all-the-uniforms-and-uniformblocks.html
-export function setUniforms(gl, program, uniforms) {
+
+// TODO: we should get the list of uniforms (and their functions) when the progam is created, and then have it search the uniforms list for the right uniform to load (and not loading any if it is null);
+export function setUniforms(gl, uniforms, uniformLocations) {
 	for (let name in uniforms) {
+		let uniformData = uniformLocations[name];
 		const data = uniforms[name][0];
-		const type = uniforms[name][1];
-		const location = gl.getUniformLocation(program, name);
-		switch (type) {
-			case (Type.float):
-				gl.uniform1f(location, data);
+		if (!uniformData) continue;
+		switch (uniformData.type) {
+			case (gl.FLOAT):
+				gl.uniform1f(uniformData.location, data);
 				break;
-			case (Type.vec3):
-				gl.uniform3fv(location, data);
+			case (gl.FLOAT_VEC3):
+				gl.uniform3fv(uniformData.location, data);
 				break;
-			case (Type.vec4):
-				gl.uniform4fv(location, data);
+			case (gl.FLOAT_VEC4):
+				gl.uniform4fv(uniformData.location, data);
 				break;
-			case (Type.mat2):
-				gl.uniformMatrix2fv(location, false, data);
+			case (gl.FLOAT_MAT2):
+				gl.uniformMatrix2fv(uniformData.location, false, data);
 				break;
-			case (Type.mat3):
-				gl.uniformMatrix3fv(location, false, data);
+			case (gl.FLOAT_MAT3):
+				gl.uniformMatrix3fv(uniformData.location, false, data);
 				break;
-			case (Type.mat4):
-				gl.uniformMatrix4fv(location, false, data);
+			case (gl.FLOAT_MAT4):
+				gl.uniformMatrix4fv(uniformData.location, false, data);
 				break;
-			case (Type.sampler2D):
-				gl.uniform1i(location, data);
+			case (gl.SAMPLER_2D):
+				gl.uniform1i(uniformData.location, data);
 				break;
 			default:
 		}
 	}
+}
+
+
+
+// from https://webglfundamentals.org/webgl/lessons/webgl-qna-how-can-i-get-all-the-uniforms-and-uniformblocks.html
+export function getUniformLocationsFromProgram(gl, program) {
+
+	const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+	const indices = [...Array(numUniforms).keys()];
+	const blockIndices = gl.getActiveUniforms(program, indices, gl.UNIFORM_BLOCK_INDEX);
+	const offsets = gl.getActiveUniforms(program, indices, gl.UNIFORM_OFFSET);
+
+	const uniformLocations = {}
+
+	let isBuiltIn = (info) => {
+		const name = info.name;
+		return name.startsWith("gl_") || name.startsWith("webgl_");
+	}
+
+	for (let ii = 0; ii < numUniforms; ++ii) {
+		const uniformInfo = gl.getActiveUniform(program, ii);
+		if (isBuiltIn(uniformInfo)) { continue; }
+
+		uniformLocations[uniformInfo.name] = {
+			name: uniformInfo.name,
+			type: uniformInfo.type,
+			location: gl.getUniformLocation(program, uniformInfo.name),
+			blockIndex: blockIndices[ii],
+			offset: offsets[ii],
+			size: uniformInfo.size,
+		}
+	}
+
+	return uniformLocations;
+
 }

@@ -1,5 +1,6 @@
 "Senko-san Updated" (https://skfb.ly/6TQPo) by okappi is licensed under Creative Commons Attribution-NonCommercial (http://creativecommons.org/licenses/by-nc/4.0/).
 
+"Old Lantern PBR" (https://free3d.com/3d-model/old-lantern-pbr-98203.html) by animatedheaven licensed under personal use
 
 /*
  * Copyright 2021, GFXFundamentals.
