@@ -1,21 +1,5 @@
 import { fetchTextData } from "./data.js"
 
-export const Type = {
-	void: 0,
-	bool: 1,
-	int: 2,
-	float: 3,
-	vec2: 4,
-	vec3: 5,
-	vec4: 6,
-	// reserve
-	mat2: 16,
-	mat3: 17,
-	mat4: 18,
-	sampler2D: 19,
-	samplerCube: 20,
-};
-
 export function loadImages(urls, callback) {
 	let images = [];
 	let imagesToLoad = urls.length;
@@ -49,18 +33,6 @@ export function loadImageEL(url, callback) {
 		callback(image);
 	});
 }
-
-// export function loadImage(gl, src, texture, textureNum) {
-// 	let image = new Image;
-// 	image.src = src;
-// 	image.addEventListener('load', function () {
-// 		gl.activeTexture(gl.TEXTURE0 + textureNum);
-// 		gl.bindTexture(gl.texture_2D, texture);
-// 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-// 		gl.generateMipmap(gl.TEXTURE_2D);
-// 	});
-// 	return image;
-// }
 
 export function setAttributesAndCreateVAO(gl, program, attributes) {
 	let vao = gl.createVertexArray();
@@ -125,12 +97,10 @@ export function resizeCanvasToDisplaySize(canvas) {
 	}
 }
 
-
-// TODO: we should get the list of uniforms (and their functions) when the progam is created, and then have it search the uniforms list for the right uniform to load (and not loading any if it is null);
 export function setUniforms(gl, uniforms, uniformLocations) {
 	for (let name in uniforms) {
 		let uniformData = uniformLocations[name];
-		const data = uniforms[name][0];
+		const data = uniforms[name];
 		if (!uniformData) continue;
 		switch (uniformData.type) {
 			case (gl.FLOAT):
@@ -158,8 +128,6 @@ export function setUniforms(gl, uniforms, uniformLocations) {
 		}
 	}
 }
-
-
 
 // from https://webglfundamentals.org/webgl/lessons/webgl-qna-how-can-i-get-all-the-uniforms-and-uniformblocks.html
 export function getUniformLocationsFromProgram(gl, program) {
@@ -191,5 +159,4 @@ export function getUniformLocationsFromProgram(gl, program) {
 	}
 
 	return uniformLocations;
-
 }

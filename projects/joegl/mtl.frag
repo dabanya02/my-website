@@ -57,6 +57,6 @@ void main() {
 				  effectiveSpecular * specularLight
 				  , effectiveOpacity);
 
-						// outColor = vec4(diffuseMapColor);
+  // outColor = vec4(diffuseMapColor);
 						
 }

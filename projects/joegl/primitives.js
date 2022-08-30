@@ -26,6 +26,29 @@ export function setCuboid(v1, v2) {
 	]);
 }
 
+export function createPlaneObject() {
+	return {
+		a_position: new attribute(new Float32Array([0, 0, 0,
+			0, 1, 0,
+			1, 0, 0,
+			0, 1, 0,
+			1, 1, 0,
+			1, 0, 0]), 3, false),
+		a_texcoord: new attribute(new Float32Array([0, 0,
+			0, 1,
+			1, 0,
+			0, 1,
+			1, 1,
+			1, 0]), 2, true),
+		a_normal: new attribute(new Float32Array([0, 0, -1,
+			0, 0, -1,
+			0, 0, -1,
+			0, 0, -1,
+			0, 0, -1,
+			0, 0, -1]), 3, false),
+	};
+}
+
 // The normals are off - need to fix
 export function createConeObject(edges) {
 	const radsPerUnit = 2 * Math.PI / edges;

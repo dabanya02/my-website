@@ -1,20 +1,19 @@
 import { mat4 } from "./matrix.js"
 import { fetchTextData, fetchJSONData, parseOBJ, parseMTL } from "./data.js"
 import { setupControls, updateValues } from "./controls.js"
-import { createSphereObject, createConeObject } from "./primitives.js"
+import { createSphereObject, createConeObject, createPlaneObject } from "./primitives.js"
 import { Vector3 } from "./vector.js";
-import { Type, setUniforms, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource, loadImageEL, getUniformLocationsFromProgram } from "./glhelpers.js"
+import { setUniforms, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource, loadImageEL, getUniformLocationsFromProgram } from "./glhelpers.js"
 import { degToRad, radToDeg, randomInt } from "./math.js";
 import attribute from "./attribute.js";
-import uniform from "./uniform.js";
 import object from "./object.js"
-import material from "./material.js"
-
-/** @type {WebGLRenderingContext} */
-let gl;
+import Scene from "./Scene.js"
 
 /** @type {HTMLCanvasElement} */
-let canvas;
+let canvas = document.querySelector("#webgl");
+
+/** @type {WebGLRenderingContext} */
+let gl = canvas.getContext("webgl2");;
 
 let objectsToDraw = [];
 
@@ -26,54 +25,57 @@ let prevTime = 0;
 let rotationRad = 0;
 let rotationSpeed = 1;
 
-let camera;
+let camera = {
+	fovRad: degToRad(60),
+	aspect: gl.canvas.clientWidth / gl.canvas.clientHeight,
+	zNear: 0.1,
+	zFar: 2000,
+}
 
 let constUniforms = {
-	u_color: [[0.2, 1, 0.2, 1], Type.vec4],
-	u_reverseLightDirection: [Vector3.unitVec([0.5, 0.7, 1]), Type.vec3],
-	u_lightWorldPosition: [[200, 30, 50], Type.vec3],
-	u_lightColor: [[1, 1, 1], Type.vec3],
-	u_specularColor: [[1, 1, 1], Type.vec3],
-	u_innerLimit: [1.0, Type.float],
-	u_outerLimit: [5.0, Type.float],
-	u_lightDirection: [[1, 2, 30], Type.vec3],
-	u_ambient: [[0.2, 0.2, 0.2, 1], Type.vec4],
-	u_ambientLight: [[0.05, 0.05, 0.05], Type.vec3],
+	u_color: [0.2, 1, 0.2, 1],
+	u_reverseLightDirection: Vector3.unitVec([0.5, 0.7, 1]),
+	u_lightWorldPosition: [200, 30, 50],
+	u_lightColor: [1, 1, 1],
+	u_specularColor: [1, 1, 1],
+	u_innerLimit: 1.0,
+	u_outerLimit: 5.0,
+	u_lightDirection: [1, 2, 30],
+	u_ambient: [0.2, 0.2, 0.2, 1],
+	u_ambientLight: [0.05, 0.05, 0.05],
 };
-
 
 const defaultMaterial = {
-	diffuse: [[1, 1, 1], Type.vec3],
-	diffuseMap: [0, Type.sampler2D],
-	ambient: [[0, 0, 0], Type.vec3],
-	specular: [[0.2, 0.2, 0.2], Type.vec3],
-	specularMap: [0, Type.sampler2D],
-	shininess: [400, Type.float],
-	opacity: [1, Type.float],
+	diffuse: [1, 1, 1],
+	diffuseMap: 0,
+	ambient: [0, 0, 0],
+	specular: [0.2, 0.2, 0.2],
+	specularMap: 0,
+	shininess: 400,
+	opacity: 1,
 };
+
+let fps = document.getElementById("fps");
 
 let textures = [];
 
-let programUniformLocations;
-let objProgramUniformLocations;
-
+/** @type {Scene} */
+let scene;
 
 async function main() {
 
-	canvas = document.querySelector("#webgl");
-	gl = canvas.getContext("webgl2");
 	if (!gl) alert("Failed to get gl context");
-
 
 	setupControls(transSpeed, rot, canvas);
 
 	let program = await createProgramFromSource(gl, "shader.vert", "shader.frag");
-	let colorProgram = await createProgramFromSource(gl, "shader.vert", "color.frag");
 	let objProgram = await createProgramFromSource(gl, "mtl.vert", "mtl.frag");
 
 	program.uniforms = getUniformLocationsFromProgram(gl, program);
 	objProgram.uniforms = getUniformLocationsFromProgram(gl, objProgram);
-	
+
+	scene = new Scene([1, 1, 1], camera);
+
 	let fData = await fetchJSONData('f.json');
 	let fGeometry = correctFVertices(new Float32Array(fData.Geometry));
 	let fTexcoord = new Float32Array(fData.TextureCoords);
@@ -84,19 +86,36 @@ async function main() {
 		a_normal: new attribute(fNormals, 3, false),
 	}
 
-	// make a update uniform function for the program to run
-	objectsToDraw.push(new object(
+	// // make a update uniform function for the program to run
+	scene.addObject(new object(
 		program,
 		setAttributesAndCreateVAO(gl, program, fObject),
 		{
-			u_world: [mat4.identity(), Type.mat4],
-			u_shininess: [150, Type.float],
+			u_world: mat4.identity(),
+			u_shininess: 150,
 		},
 		[200, 0, -300],
 		[0, 0, 0],
 		[1.2, 1.2, 1.2],
 		16 * 6
 	));
+
+	// let planeObject = createPlaneObject();
+
+	// // make a update uniform function for the program to run
+	// objectsToDraw.push(new object(
+	// 	program,
+	// 	setAttributesAndCreateVAO(gl, program, planeObject),
+	// 	{
+	// 		u_world: mat4.identity(),
+	// 		u_shininess: 150,
+	// 	},
+	// 	[200, 0, -500],
+	// 	[0, Math.PI, 0],
+	// 	[100, 100, 100],
+	// 	6
+	// ));
+
 	const itr = 10;
 
 	const radsPerUnit = Math.PI / itr; // amount increase per vertical level
@@ -105,10 +124,15 @@ async function main() {
 	let points = [];
 	let vertAngle = -Math.PI / 2; // Top
 
-	let joeobjSource = await fetchTextData("resources/joegl.obj");
-	let joemtlSource = await fetchTextData("resources/joegl.mtl");
-	const joeobj = await parseOBJ(joeobjSource);
-	const joemtl = await parseMTL(joemtlSource + '\n');
+	// let joeobjSource = await fetchTextData("resources/joegl.obj");
+	// let joemtlSource = await fetchTextData("resources/joegl.mtl");
+	// const joeobj = await parseOBJ(joeobjSource);
+	// const joemtl = await parseMTL(joemtlSource + '\n');
+
+	await scene.loadModel(
+		"resources/joegl.obj",
+		"joegl"
+	);
 
 	for (let vertUnit = 0; vertUnit < itr; vertUnit++) {
 		let radius = Math.cos(vertAngle) * 150;
@@ -118,35 +142,41 @@ async function main() {
 			let x = Math.cos(horAngle) * radius - 300;
 			let z = Math.sin(horAngle) * radius;
 			points = [x, height, z - 200];
-			joeobj.geometries.map(({ material, data }) => {
-				let obj = new object(
-					objProgram,
-					setAttributesAndCreateVAO(gl, program, data),
-					{
-						u_world: [mat4.identity(), Type.mat4],
-						u_ambientLight: [[0.0, 0.0, 0.0], Type.vec3],
-						...defaultMaterial,
-						...joemtl[material],
-						diffuseMap: [1, Type.sampler2D],
-					},
-					points,
-					[0, 180, 0],
-					[10, 10, 10],
-					data.a_position.buffer.length / 3
-
-				);
-				horAngle -= radsPerUnit;
-				objectsToDraw.push(obj);
-			}
+			scene.createInstanceOfModel(
+				gl,
+				objProgram,
+				"joegl",
+				"joegl",
+				points,
+				[0, 180, 0],
+				[10, 10, 10],
+				defaultMaterial,
+				{
+					u_world: mat4.identity(),
+					u_ambientLight: [0.0, 0.0, 0.0],
+					diffuseMap: 1,
+				},
 			);
+			horAngle -= radsPerUnit;
+
 		}
 		vertAngle += radsPerUnit;
 	}
 
-	let objFile = await fetchTextData("resources/senko.obj");
-	let mtlFile = await fetchTextData("resources/senko.mtl");
+	let objFile = await fetchTextData("resources/senkomatte.obj");
+	let mtlFile = await fetchTextData("resources/senkomatte.mtl");
 	const senko = await parseOBJ(objFile);
 	const senkoMat = await parseMTL(mtlFile + '\n');
+
+	let white = gl.createTexture();
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, white);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+
+	let purple = gl.createTexture();
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, purple);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 255, 255]));
 
 	let texIdx = 2;
 	// creates texture for all the maps
@@ -167,19 +197,17 @@ async function main() {
 					textures[filename] = texIdx;
 					texIdx++;
 				}
-				material[key] = [textures[filename], Type.sampler2D];
+				material[key] = textures[filename];
 			})
 	};
-
-
 
 	senko.geometries.map(({ material, data }) => {
 		let obj = new object(
 			objProgram,
 			setAttributesAndCreateVAO(gl, program, data),
 			{
-				u_world: [mat4.identity(), Type.mat4],
-				u_ambientLight: [[0.0, 0.0, 0.0], Type.vec3],
+				u_world: mat4.identity(),
+				u_ambientLight: [0.0, 0.0, 0.0],
 				...defaultMaterial,
 				...senkoMat[material],
 			},
@@ -215,7 +243,7 @@ async function main() {
 					textures[filename] = texIdx;
 					texIdx++;
 				}
-				material[key] = [textures[filename], Type.sampler2D];
+				material[key] = textures[filename];
 			})
 	};
 
@@ -224,8 +252,8 @@ async function main() {
 			objProgram,
 			setAttributesAndCreateVAO(gl, program, data),
 			{
-				u_world: [mat4.identity(), Type.mat4],
-				u_ambientLight: [[0.0, 0.0, 0.0], Type.vec3],
+				u_world: mat4.identity(),
+				u_ambientLight: [0.0, 0.0, 0.0],
 				...defaultMaterial,
 				...lanternmtl[material],
 			},
@@ -238,24 +266,6 @@ async function main() {
 		objectsToDraw.push(obj);
 	});
 
-
-	let white = gl.createTexture();
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, white);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
-
-	let purple = gl.createTexture();
-	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, purple);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 255, 255]));
-
-	camera = {
-		fovRad: degToRad(60),
-		aspect: gl.canvas.clientWidth / gl.canvas.clientHeight,
-		zNear: 0.1,
-		zFar: 2000,
-	}
-
 	gl.enable(gl.CULL_FACE);
 	gl.enable(gl.DEPTH_TEST);
 
@@ -264,17 +274,19 @@ async function main() {
 
 function drawScene(now) {
 
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);
+	gl.clearColor(0.0, 0.0, 255.0, 1.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 	now *= 0.001;
 	let dTime = now - prevTime;
 	prevTime = now;
 
-	resizeCanvasToDisplaySize(gl.canvas);
-	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+	fps.innerHTML = 1 / dTime;
 
-	let projectionMatrix = mat4.perspective(camera.fovRad, camera.aspect, camera.zNear, camera.zFar);
+	// resizeCanvasToDisplaySize(gl.canvas);
+	// gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+	// let projectionMatrix = mat4.perspective(camera.fovRad, camera.aspect, camera.zNear, camera.zFar);
 
 	let moveMat = mat4.translation(trans[0], trans[1], trans[2]);
 	moveMat = mat4.mRotateY(moveMat, degToRad(rot[1]));
@@ -291,40 +303,47 @@ function drawScene(now) {
 	cameraMatrix = mat4.mRotateX(cameraMatrix, degToRad(rot[1]));
 	cameraMatrix = mat4.mRotateZ(cameraMatrix, degToRad(rot[2]));
 
-	let viewMatrix = mat4.inverse(cameraMatrix);
-	
-	let viewProjectionMatrix = mat4.multiply(projectionMatrix, viewMatrix);
-	for (let object of objectsToDraw) {
+	// let viewMatrix = mat4.inverse(cameraMatrix);
 
-		gl.useProgram(object.program);
-		gl.bindVertexArray(object.vao);
-		setUniforms(gl, constUniforms, object.program.uniforms);
+	// let viewProjectionMatrix = mat4.multiply(projectionMatrix, viewMatrix);
 
-		let worldMatrix = mat4.translation(object.translation[0], object.translation[1], object.translation[2]);
-		worldMatrix = mat4.mRotateX(worldMatrix, object.rotation[0]);
-		worldMatrix = mat4.mRotateY(worldMatrix, object.rotation[1]);
-		worldMatrix = mat4.mRotateZ(worldMatrix, object.rotation[2]);
-		worldMatrix = mat4.mScaling(worldMatrix, object.scaling[0], object.scaling[1], object.scaling[2]);
-		let worldViewProjectionMatrix = mat4.multiply(viewProjectionMatrix, worldMatrix);
-		let worldInverseTransposeMatrix = mat4.transpose(mat4.inverse(worldMatrix));
+	// for (let object of objectsToDraw) {
 
-		setUniforms(gl, object.uniforms, object.program.uniforms);
+	// 	gl.useProgram(object.program);
+	// 	gl.bindVertexArray(object.vao);
+	// 	setUniforms(gl, constUniforms, object.program.uniforms);
 
-		setUniforms(gl, object.material, object.program.uniforms);
+	// 	let worldMatrix = mat4.translation(object.translation[0], object.translation[1], object.translation[2]);
+	// 	worldMatrix = mat4.mRotateX(worldMatrix, object.rotation[0]);
+	// 	worldMatrix = mat4.mRotateY(worldMatrix, object.rotation[1]);
+	// 	worldMatrix = mat4.mRotateZ(worldMatrix, object.rotation[2]);
+	// 	worldMatrix = mat4.mScaling(worldMatrix, object.scaling[0], object.scaling[1], object.scaling[2]);
+	// 	let worldViewProjectionMatrix = mat4.multiply(viewProjectionMatrix, worldMatrix);
+	// 	let worldInverseTransposeMatrix = mat4.transpose(mat4.inverse(worldMatrix));
 
-		setUniforms(gl, {
-			u_worldViewProjection: [worldViewProjectionMatrix, Type.mat4],
-			u_worldInverseTranspose: [worldInverseTransposeMatrix, Type.mat4],
-			u_world: [worldMatrix, Type.mat4],
-			u_viewWorldPosition: [[
-				cameraMatrix[12],
-				cameraMatrix[13],
-				cameraMatrix[14],], Type.vec3],
-		}, object.program.uniforms)
-		gl.drawArrays(gl.TRIANGLES, 0, object.vertexes);
-		// debugger
-		
-	}
+	// 	setUniforms(gl, object.uniforms, object.program.uniforms);
+
+	// 	setUniforms(gl, object.material, object.program.uniforms);
+
+	// 	setUniforms(gl, {
+	// 		u_worldViewProjection: worldViewProjectionMatrix,
+	// 		u_worldInverseTranspose: worldInverseTransposeMatrix,
+	// 		u_world: worldMatrix,
+	// 		u_viewWorldPosition: [
+	// 			cameraMatrix[12],
+	// 			cameraMatrix[13],
+	// 			cameraMatrix[14],],
+	// 	}, object.program.uniforms)
+
+	scene.cameraMatrix = cameraMatrix;
+	scene.render(gl,
+		{
+			...constUniforms,
+		});
+	gl.drawArrays(gl.TRIANGLES, 0, object.vertexes);
+	// }						
+	// console.log(scene.objects);
+	// debugger;
 	updateValues(rot, trans);
 	requestAnimationFrame(drawScene);
 }
