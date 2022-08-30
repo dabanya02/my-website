@@ -1,8 +1,7 @@
-import { fetchTextData, parseOBJ, parseMTL, loadAndCallback } from "./data.js"
+import { fetchTextData, parseOBJ, parseMTL } from "./data.js"
 import object from "./object.js"
-import { setAttributesAndCreateVAO, resizeCanvasToDisplaySize, loadImageEL, setUniforms } from "./glhelpers.js"
+import { setAttributesAndCreateVAO, resizeCanvasToDisplaySize, setUniforms, loadImageWithIndex } from "./glhelpers.js"
 import { mat4 } from "./matrix.js"
-import attribute from "./attribute.js"
 
 export default class Scene {
 	lights;
@@ -14,16 +13,26 @@ export default class Scene {
 	camera;
 	cameraMatrix;
 	projectionMatrix;
+	texIdx;
 
 	constructor(background, camera) {
 		this.lights = [];
 		this.objects = [];
-		this.textures = {};
+		this.textures = [];
 		this.models = {};
 		this.materials = {};
 		this.background = background;
 		this.camera = camera;
 		this.projectionMatrix = mat4.perspective(this.camera.fovRad, this.camera.aspect, this.camera.zNear, this.camera.zFar);
+		this.texIdx = 0;
+	}
+
+	async addTexture(gl, data) {
+		let tex = gl.createTexture();
+		gl.activeTexture(gl.TEXTURE0 + this.texIdx);
+		gl.bindTexture(gl.TEXTURE_2D, tex);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+		this.texIdx++;
 	}
 
 	// loads an object file and material file if it exists.
@@ -37,7 +46,7 @@ export default class Scene {
 		}
 	}
 
-	async loadMaterial(mtlPath, name) {
+	async loadMaterial(gl, mtlPath, name, texturePath) {
 		if (!this.materials[name]) {
 			const mtlSource = await fetchTextData(mtlPath);
 			this.materials[name] = parseMTL(mtlSource);
@@ -49,16 +58,10 @@ export default class Scene {
 					.forEach(([key, filename]) => { // name of map and the path
 						let texture = this.textures[filename];
 						if (!texture) {
-							loadImageEL("./resources/" + filename, function (image) {
-								let tex = gl.createTexture();
-								gl.activeTexture(gl.TEXTURE0 + this.textures[filename]);
-								gl.bindTexture(gl.TEXTURE_2D, tex);
-								gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-								gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-								gl.generateMipmap(gl.TEXTURE_2D);
-							});
-							this.textures[filename] = texIdx;
-							texIdx++;
+							debugger
+							loadImageWithIndex(texturePath + filename, gl, this.texIdx);
+							this.textures[filename] = this.texIdx;
+							this.texIdx++;
 						}
 						material[key] = this.textures[filename];
 					})
@@ -66,7 +69,6 @@ export default class Scene {
 		} else {
 			console.error("Name already taken:", name);
 		}
-
 	}
 
 	createInstanceOfModel(gl, program, objName, mtlName, translation, rotation, scaling, defaultMtl, uniforms) {
@@ -76,24 +78,24 @@ export default class Scene {
 		}
 
 		this.models[objName].geometries.map(({ material, data }) => {
-			let curMaterials = {}
+			let curMaterials = {};
 			if (this.materials[mtlName]) {
 				curMaterials = this.materials[mtlName][material];
 			}
 
-				let geometry = new object(
-					program,
-					setAttributesAndCreateVAO(gl, program, data),
-					{
-						...defaultMtl,
-						...curMaterials,
-						...uniforms,
-					},
-					translation,
-					rotation,
-					scaling,
-					data.a_position.buffer.length / 3
-				);
+			let geometry = new object(
+				program,
+				setAttributesAndCreateVAO(gl, program, data),
+				{
+					...defaultMtl,
+					...curMaterials,
+					...uniforms,
+				},
+				translation,
+				rotation,
+				scaling,
+				data.a_position.buffer.length / 3
+			);
 
 			this.objects.push(geometry);
 		});
@@ -127,7 +129,6 @@ export default class Scene {
 			setUniforms(gl, geometry.uniforms, geometry.program.uniforms);
 			setUniforms(gl, geometry.material, geometry.program.uniforms);
 			setUniforms(gl, uniforms, geometry.program.uniforms);
-
 			setUniforms(gl, {
 				u_worldViewProjection: worldViewProjectionMatrix,
 				u_worldInverseTranspose: worldInverseTransposeMatrix,

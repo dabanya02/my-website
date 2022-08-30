@@ -1,0 +1,16 @@
+# Blender MTL File: 'None'
+# Material Count: 1
+
+newmtl Material.001
+Ns 250.000000
+Ka 0.995455 0.995455 0.995455
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Bump -bm 1.000001 /home/dabanya02/Downloads/brix/sloppy-mortar-bricks-bl/sloppy-mortar-bricks_normal-ogl.png
+map_Kd /home/dabanya02/Downloads/brix/sloppy-mortar-bricks-bl/sloppy-mortar-bricks_albedo.png
+map_Ns /home/dabanya02/Downloads/brix/sloppy-mortar-bricks-bl/sloppy-mortar-bricks_roughness.png
+refl /home/dabanya02/Downloads/brix/sloppy-mortar-bricks-bl/sloppy-mortar-bricks_metallic.png

@@ -13,9 +13,7 @@ import Scene from "./Scene.js"
 let canvas = document.querySelector("#webgl");
 
 /** @type {WebGLRenderingContext} */
-let gl = canvas.getContext("webgl2");;
-
-let objectsToDraw = [];
+let gl = canvas.getContext("webgl2");
 
 let trans = [0, 0, 0];
 let transSpeed = [0, 0, 0, 0];
@@ -57,8 +55,6 @@ const defaultMaterial = {
 
 let fps = document.getElementById("fps");
 
-let textures = [];
-
 /** @type {Scene} */
 let scene;
 
@@ -76,6 +72,9 @@ async function main() {
 
 	scene = new Scene([1, 1, 1], camera);
 
+	scene.addTexture(gl, new Uint8Array([255, 255, 255, 255]));
+	scene.addTexture(gl, new Uint8Array([255, 0, 255, 255]));
+
 	let fData = await fetchJSONData('f.json');
 	let fGeometry = correctFVertices(new Float32Array(fData.Geometry));
 	let fTexcoord = new Float32Array(fData.TextureCoords);
@@ -91,6 +90,7 @@ async function main() {
 		program,
 		setAttributesAndCreateVAO(gl, program, fObject),
 		{
+			u_texture: 0,
 			u_world: mat4.identity(),
 			u_shininess: 150,
 		},
@@ -100,21 +100,22 @@ async function main() {
 		16 * 6
 	));
 
-	// let planeObject = createPlaneObject();
+	let planeObject = createPlaneObject();
 
-	// // make a update uniform function for the program to run
-	// objectsToDraw.push(new object(
-	// 	program,
-	// 	setAttributesAndCreateVAO(gl, program, planeObject),
-	// 	{
-	// 		u_world: mat4.identity(),
-	// 		u_shininess: 150,
-	// 	},
-	// 	[200, 0, -500],
-	// 	[0, Math.PI, 0],
-	// 	[100, 100, 100],
-	// 	6
-	// ));
+	// make a update uniform function for the program to run
+	scene.addObject(new object(
+		program,
+		setAttributesAndCreateVAO(gl, program, planeObject),
+		{
+			u_texture: 0,
+			u_world: mat4.identity(),
+			u_shininess: 150,
+		},
+		[200, 0, -500],
+		[0, Math.PI, 0],
+		[100, 100, 100],
+		6
+	));
 
 	const itr = 10;
 
@@ -123,11 +124,6 @@ async function main() {
 
 	let points = [];
 	let vertAngle = -Math.PI / 2; // Top
-
-	// let joeobjSource = await fetchTextData("resources/joegl.obj");
-	// let joemtlSource = await fetchTextData("resources/joegl.mtl");
-	// const joeobj = await parseOBJ(joeobjSource);
-	// const joemtl = await parseMTL(joemtlSource + '\n');
 
 	await scene.loadModel(
 		"resources/joegl.obj",
@@ -163,108 +159,41 @@ async function main() {
 		vertAngle += radsPerUnit;
 	}
 
-	let objFile = await fetchTextData("resources/senkomatte.obj");
-	let mtlFile = await fetchTextData("resources/senkomatte.mtl");
-	const senko = await parseOBJ(objFile);
-	const senkoMat = await parseMTL(mtlFile + '\n');
 
-	let white = gl.createTexture();
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, white);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+	await scene.loadModel("resources/senko.obj", "senko");
+	await scene.loadMaterial(gl, "resources/senko.mtl", "senko", "resources/");
+	scene.createInstanceOfModel(
+		gl,
+		objProgram,
+		"senko",
+		"senko",
+		[0, -120, -400],
+		[0, 0, 0],
+		[30, 30, 30],
+		defaultMaterial,
+		{
+			u_world: mat4.identity(),
+			u_ambientLight: [0.0, 0.0, 0.0],
+		}
+	)
 
-	let purple = gl.createTexture();
-	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, purple);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 255, 255]));
 
-	let texIdx = 2;
-	// creates texture for all the maps
-	for (const material of Object.values(senkoMat)) {
-		Object.entries(material)
-			.filter(([key]) => key.endsWith('Map')) // get all maps from materials
-			.forEach(([key, filename]) => { // name of map and the address
-				let texture = textures[filename];
-				if (!texture) {
-					loadImageEL("./resources/" + filename, function (image) {
-						let tex = gl.createTexture();
-						gl.activeTexture(gl.TEXTURE0 + textures[filename]);
-						gl.bindTexture(gl.TEXTURE_2D, tex);
-						gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-						gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-						gl.generateMipmap(gl.TEXTURE_2D);
-					});
-					textures[filename] = texIdx;
-					texIdx++;
-				}
-				material[key] = textures[filename];
-			})
-	};
-
-	senko.geometries.map(({ material, data }) => {
-		let obj = new object(
-			objProgram,
-			setAttributesAndCreateVAO(gl, program, data),
-			{
-				u_world: mat4.identity(),
-				u_ambientLight: [0.0, 0.0, 0.0],
-				...defaultMaterial,
-				...senkoMat[material],
-			},
-			[0, -120, -400],
-			[0, 0, 0],
-			[30, 30, 30],
-			data.a_position.buffer.length / 3
-		);
-
-		objectsToDraw.push(obj);
-	});
-
-	let lanternOBJ = await fetchTextData("resources/lantern/lantern.obj");
-	let lanternMTL = await fetchTextData("resources/lantern/lantern.mtl");
-	const lantern = await parseOBJ(lanternOBJ);
-	const lanternmtl = await parseMTL(lanternMTL + '\n');
-
-	// creates texture for all the maps
-	for (const material of Object.values(lanternmtl)) {
-		Object.entries(material)
-			.filter(([key]) => key.endsWith('Map')) // get all maps from materials
-			.forEach(([key, filename]) => { // name of map and the address
-				let texture = textures[filename];
-				if (!texture) {
-					loadImageEL("./resources/lantern/" + filename, function (image) {
-						let tex = gl.createTexture();
-						gl.activeTexture(gl.TEXTURE0 + textures[filename]);
-						gl.bindTexture(gl.TEXTURE_2D, tex);
-						gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-						gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-						gl.generateMipmap(gl.TEXTURE_2D);
-					});
-					textures[filename] = texIdx;
-					texIdx++;
-				}
-				material[key] = textures[filename];
-			})
-	};
-
-	lantern.geometries.map(({ material, data }) => {
-		let obj = new object(
-			objProgram,
-			setAttributesAndCreateVAO(gl, program, data),
-			{
-				u_world: mat4.identity(),
-				u_ambientLight: [0.0, 0.0, 0.0],
-				...defaultMaterial,
-				...lanternmtl[material],
-			},
-			[-10, -30, -50],
-			[0, 0, 0],
-			[50, 50, 50],
-			data.a_position.buffer.length / 3
-		);
-
-		objectsToDraw.push(obj);
-	});
+	await scene.loadModel("resources/lantern/lantern.obj", "lantern");
+	await scene.loadMaterial(gl, "resources/lantern/lantern.mtl", "lantern", "resources/lantern/");
+	scene.createInstanceOfModel(
+		gl,
+		objProgram,
+		"lantern",
+		"lantern",
+		[20, 0, -200],
+		[0, 0, 0],
+		[30, 30, 30],
+		defaultMaterial,
+		{
+			u_world: mat4.identity(),
+			u_ambientLight: [0.0, 0.0, 0.0],
+		}
+	)
 
 	gl.enable(gl.CULL_FACE);
 	gl.enable(gl.DEPTH_TEST);
@@ -282,12 +211,7 @@ function drawScene(now) {
 	prevTime = now;
 
 	fps.innerHTML = 1 / dTime;
-
-	// resizeCanvasToDisplaySize(gl.canvas);
-	// gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-	// let projectionMatrix = mat4.perspective(camera.fovRad, camera.aspect, camera.zNear, camera.zFar);
-
+	
 	let moveMat = mat4.translation(trans[0], trans[1], trans[2]);
 	moveMat = mat4.mRotateY(moveMat, degToRad(rot[1]));
 	moveMat = mat4.mRotateX(moveMat, degToRad(rot[2]));
@@ -303,47 +227,12 @@ function drawScene(now) {
 	cameraMatrix = mat4.mRotateX(cameraMatrix, degToRad(rot[1]));
 	cameraMatrix = mat4.mRotateZ(cameraMatrix, degToRad(rot[2]));
 
-	// let viewMatrix = mat4.inverse(cameraMatrix);
-
-	// let viewProjectionMatrix = mat4.multiply(projectionMatrix, viewMatrix);
-
-	// for (let object of objectsToDraw) {
-
-	// 	gl.useProgram(object.program);
-	// 	gl.bindVertexArray(object.vao);
-	// 	setUniforms(gl, constUniforms, object.program.uniforms);
-
-	// 	let worldMatrix = mat4.translation(object.translation[0], object.translation[1], object.translation[2]);
-	// 	worldMatrix = mat4.mRotateX(worldMatrix, object.rotation[0]);
-	// 	worldMatrix = mat4.mRotateY(worldMatrix, object.rotation[1]);
-	// 	worldMatrix = mat4.mRotateZ(worldMatrix, object.rotation[2]);
-	// 	worldMatrix = mat4.mScaling(worldMatrix, object.scaling[0], object.scaling[1], object.scaling[2]);
-	// 	let worldViewProjectionMatrix = mat4.multiply(viewProjectionMatrix, worldMatrix);
-	// 	let worldInverseTransposeMatrix = mat4.transpose(mat4.inverse(worldMatrix));
-
-	// 	setUniforms(gl, object.uniforms, object.program.uniforms);
-
-	// 	setUniforms(gl, object.material, object.program.uniforms);
-
-	// 	setUniforms(gl, {
-	// 		u_worldViewProjection: worldViewProjectionMatrix,
-	// 		u_worldInverseTranspose: worldInverseTransposeMatrix,
-	// 		u_world: worldMatrix,
-	// 		u_viewWorldPosition: [
-	// 			cameraMatrix[12],
-	// 			cameraMatrix[13],
-	// 			cameraMatrix[14],],
-	// 	}, object.program.uniforms)
-
 	scene.cameraMatrix = cameraMatrix;
 	scene.render(gl,
 		{
 			...constUniforms,
 		});
-	gl.drawArrays(gl.TRIANGLES, 0, object.vertexes);
-	// }						
-	// console.log(scene.objects);
-	// debugger;
+	
 	updateValues(rot, trans);
 	requestAnimationFrame(drawScene);
 }
