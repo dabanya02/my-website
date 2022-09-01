@@ -41,10 +41,8 @@ void main() {
   
   // Texture coordinate
   v_texcoord = a_texcoord;
-
   // find the vector from the light to the surface point
   v_surfaceToLight = u_lightWorldPosition - surfaceWorldPosition;
-
   // find the vector from the view to the surface point
   v_surfaceToView = u_viewWorldPosition - surfaceWorldPosition;
 

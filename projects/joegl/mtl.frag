@@ -5,6 +5,7 @@
 precision highp float;
 
 in vec3 v_normal;
+in vec3 v_tangent;
 in vec4 v_color;
 in vec2 v_texcoord;
 in vec3 v_surfaceToLight;
@@ -21,15 +22,26 @@ uniform vec3 u_ambientLight;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D specularMap;
+uniform sampler2D normalMap;
 
 out vec4 outColor;
  
 void main() {
 
   vec3 normal = normalize(v_normal);
+  vec3 tangent = normalize(v_tangent);
+  vec3 bitangent = normalize(cross(normal, tangent));
 
+  // tangent bitangent normal matrix, translates the normals from tangent space to world space
+  mat3 tbn = mat3(tangent, bitangent, normal);
+  normal = texture(normalMap, v_texcoord).rgb * 2. - 1.;
+  normal = normalize(tbn * normal);
+  
   // directional lighting
   // float light = dot(normal, u_reverseLightDirection);
+
+  // vec3 normal = texture(normalMap, v_texcoord).rgb;
+  // normal = normalize(normal*2.0 - 1.0);
 
   // point lighting
   vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
@@ -50,12 +62,15 @@ void main() {
   vec4 specularMapColor = texture(specularMap, v_texcoord);
   vec3 effectiveSpecular = specular * specularMapColor.rgb;
   float effectiveOpacity = opacity * diffuseMapColor.a;
+
+
   
   outColor = vec4(emissive + 
 				  ambient * u_ambientLight + 
 				  effectiveDiffuse * light +
 				  effectiveSpecular * specularLight
-				  , effectiveOpacity);
+				  , effectiveOpacity
+				  );
 
   // outColor = vec4(diffuseMapColor);
 						

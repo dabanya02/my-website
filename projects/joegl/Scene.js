@@ -1,7 +1,8 @@
-import { fetchTextData, parseOBJ, parseMTL } from "./data.js"
+import { fetchTextData, parseOBJ, parseMTL, generateTangents } from "./data.js"
 import object from "./object.js"
 import { setAttributesAndCreateVAO, resizeCanvasToDisplaySize, setUniforms, loadImageWithIndex } from "./glhelpers.js"
 import { mat4 } from "./matrix.js"
+import attribute from "./attribute.js"
 
 export default class Scene {
 	lights;
@@ -14,6 +15,13 @@ export default class Scene {
 	cameraMatrix;
 	projectionMatrix;
 	texIdx;
+
+	lastUsed = {
+		programInfo: null,
+		vertexArray: null,
+		uniforms: null,
+		materials: null,
+	}
 
 	constructor(background, camera) {
 		this.lights = [];
@@ -58,7 +66,6 @@ export default class Scene {
 					.forEach(([key, filename]) => { // name of map and the path
 						let texture = this.textures[filename];
 						if (!texture) {
-							debugger
 							loadImageWithIndex(texturePath + filename, gl, this.texIdx);
 							this.textures[filename] = this.texIdx;
 							this.texIdx++;
@@ -83,6 +90,12 @@ export default class Scene {
 				curMaterials = this.materials[mtlName][material];
 			}
 
+			if(data.a_texcoord && data.a_normal) {
+				data.a_tangent = new attribute(generateTangents(data.a_position, data.a_texcoord), 3, false);
+			} else {
+				data.a_tangent = new attribute([1, 0, 0], 3, false);
+			}
+
 			let geometry = new object(
 				program,
 				setAttributesAndCreateVAO(gl, program, data),
@@ -103,7 +116,7 @@ export default class Scene {
 
 	render(gl, uniforms) {
 
-		gl.clearColor(0.0, 0.0, 255.0, 1.0);
+		gl.clearColor(...this.background, 1.0);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 		resizeCanvasToDisplaySize(gl.canvas);
@@ -115,8 +128,27 @@ export default class Scene {
 
 		for (let geometry of this.objects) {
 
-			gl.useProgram(geometry.program);
-			gl.bindVertexArray(geometry.vao);
+			if (this.lastUsed.programInfo !== geometry.program) {
+				gl.useProgram(geometry.program);
+				this.lastUsed.programInfo = geometry.program;
+			}
+
+			if (this.lastUsed.vertexArray !== geometry.vao) {
+				gl.bindVertexArray(geometry.vao);
+				this.lastUsed.vertexArray = geometry.vao;
+			}
+
+			if (this.lastUsed.uniforms !== geometry.uniforms) {
+				setUniforms(gl, geometry.uniforms, geometry.program.uniforms);
+				this.lastUsed.uniforms = geometry.uniforms;
+			}
+
+			if (this.lastUsed.materials !== geometry.material) {
+				setUniforms(gl, geometry.material, geometry.program.uniforms);
+				this.lastUsed.materials = geometry.material;
+			}
+
+			setUniforms(gl, uniforms, geometry.program.uniforms);
 
 			let worldMatrix = mat4.translation(geometry.translation[0], geometry.translation[1], geometry.translation[2]);
 			worldMatrix = mat4.mRotateX(worldMatrix, geometry.rotation[0]);
@@ -126,9 +158,6 @@ export default class Scene {
 			let worldViewProjectionMatrix = mat4.multiply(viewProjectionMatrix, worldMatrix);
 			let worldInverseTransposeMatrix = mat4.transpose(mat4.inverse(worldMatrix));
 
-			setUniforms(gl, geometry.uniforms, geometry.program.uniforms);
-			setUniforms(gl, geometry.material, geometry.program.uniforms);
-			setUniforms(gl, uniforms, geometry.program.uniforms);
 			setUniforms(gl, {
 				u_worldViewProjection: worldViewProjectionMatrix,
 				u_worldInverseTranspose: worldInverseTransposeMatrix,
@@ -147,7 +176,7 @@ export default class Scene {
 	}
 
 	removeObject(name) {
-
+		
 	}
 
 	setCamera(fov, aspect, zNear, zFar) {

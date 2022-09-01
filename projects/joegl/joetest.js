@@ -1,9 +1,9 @@
 import { mat4 } from "./matrix.js"
-import { fetchTextData, fetchJSONData, parseOBJ, parseMTL } from "./data.js"
+import { fetchJSONData } from "./data.js"
 import { setupControls, updateValues } from "./controls.js"
-import { createSphereObject, createConeObject, createPlaneObject } from "./primitives.js"
+// import { createSphereObject, createConeObject, createPlaneObject } from "./primitives.js"
 import { Vector3 } from "./vector.js";
-import { setUniforms, resizeCanvasToDisplaySize, setAttributesAndCreateVAO, createProgramFromSource, loadImageEL, getUniformLocationsFromProgram } from "./glhelpers.js"
+import { setAttributesAndCreateVAO, createProgramFromSource, getUniformLocationsFromProgram } from "./glhelpers.js"
 import { degToRad, radToDeg, randomInt } from "./math.js";
 import attribute from "./attribute.js";
 import object from "./object.js"
@@ -39,8 +39,8 @@ let constUniforms = {
 	u_innerLimit: 1.0,
 	u_outerLimit: 5.0,
 	u_lightDirection: [1, 2, 30],
-	u_ambient: [0.2, 0.2, 0.2, 1],
-	u_ambientLight: [0.05, 0.05, 0.05],
+	u_ambient: [0.0, 0.0, 0.0, 1],
+	u_ambientLight: [0.0, 0.0, 0.0],
 };
 
 const defaultMaterial = {
@@ -49,6 +49,7 @@ const defaultMaterial = {
 	ambient: [0, 0, 0],
 	specular: [0.2, 0.2, 0.2],
 	specularMap: 0,
+	normalMap: 2,
 	shininess: 400,
 	opacity: 1,
 };
@@ -57,6 +58,8 @@ let fps = document.getElementById("fps");
 
 /** @type {Scene} */
 let scene;
+
+window.onload = main;
 
 async function main() {
 
@@ -70,10 +73,14 @@ async function main() {
 	program.uniforms = getUniformLocationsFromProgram(gl, program);
 	objProgram.uniforms = getUniformLocationsFromProgram(gl, objProgram);
 
-	scene = new Scene([1, 1, 1], camera);
+	scene = new Scene([0, 0, 0], camera);
 
+	// white
 	scene.addTexture(gl, new Uint8Array([255, 255, 255, 255]));
+	// purple
 	scene.addTexture(gl, new Uint8Array([255, 0, 255, 255]));
+	// neutral normal map
+	scene.addTexture(gl, new Uint8Array([127, 127, 255, 0]));
 
 	let fData = await fetchJSONData('f.json');
 	let fGeometry = correctFVertices(new Float32Array(fData.Geometry));
@@ -100,35 +107,30 @@ async function main() {
 		16 * 6
 	));
 
-	let planeObject = createPlaneObject();
+	await scene.loadModel("resources/brix/bricks.obj", "bricks");
+	await scene.loadMaterial(gl, "resources/brix/bricks.mtl", "bricks", "resources/brix/");
 
-	// make a update uniform function for the program to run
-	scene.addObject(new object(
-		program,
-		setAttributesAndCreateVAO(gl, program, planeObject),
-		{
-			u_texture: 0,
-			u_world: mat4.identity(),
-			u_shininess: 150,
-		},
-		[200, 0, -500],
-		[0, Math.PI, 0],
-		[100, 100, 100],
-		6
-	));
+	for (let x = 0; x < 20; x++) {
+		for (let y = 0; y < 20; y++) {
+			scene.createInstanceOfModel(
+				gl,
+				objProgram,
+				"bricks",
+				"bricks",
+				[-500 + x * 100, -120, -500 + y * 100],
+				[0, 0, degToRad(90)],
+				[50, 50, 50],
+				defaultMaterial,
+				{},
+			);
+		}
+	}
+	await scene.loadModel("resources/joegl.obj", "joegl");
 
 	const itr = 10;
-
 	const radsPerUnit = Math.PI / itr; // amount increase per vertical level
 	const horUnitCount = itr * 2;
-
-	let points = [];
 	let vertAngle = -Math.PI / 2; // Top
-
-	await scene.loadModel(
-		"resources/joegl.obj",
-		"joegl"
-	);
 
 	for (let vertUnit = 0; vertUnit < itr; vertUnit++) {
 		let radius = Math.cos(vertAngle) * 150;
@@ -137,13 +139,12 @@ async function main() {
 		for (let horUnit = 0; horUnit <= horUnitCount; horUnit++) {
 			let x = Math.cos(horAngle) * radius - 300;
 			let z = Math.sin(horAngle) * radius;
-			points = [x, height, z - 200];
 			scene.createInstanceOfModel(
 				gl,
 				objProgram,
 				"joegl",
 				"joegl",
-				points,
+				[x, height, z - 200],
 				[0, 180, 0],
 				[10, 10, 10],
 				defaultMaterial,
@@ -154,7 +155,6 @@ async function main() {
 				},
 			);
 			horAngle -= radsPerUnit;
-
 		}
 		vertAngle += radsPerUnit;
 	}
@@ -177,7 +177,6 @@ async function main() {
 		}
 	)
 
-
 	await scene.loadModel("resources/lantern/lantern.obj", "lantern");
 	await scene.loadMaterial(gl, "resources/lantern/lantern.mtl", "lantern", "resources/lantern/");
 	scene.createInstanceOfModel(
@@ -185,7 +184,7 @@ async function main() {
 		objProgram,
 		"lantern",
 		"lantern",
-		[20, 0, -200],
+		[-80, -100, 20],
 		[0, 0, 0],
 		[30, 30, 30],
 		defaultMaterial,
@@ -194,7 +193,7 @@ async function main() {
 			u_ambientLight: [0.0, 0.0, 0.0],
 		}
 	)
-
+	
 	gl.enable(gl.CULL_FACE);
 	gl.enable(gl.DEPTH_TEST);
 
@@ -203,15 +202,12 @@ async function main() {
 
 function drawScene(now) {
 
-	gl.clearColor(0.0, 0.0, 255.0, 1.0);
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
 	now *= 0.001;
 	let dTime = now - prevTime;
 	prevTime = now;
 
 	fps.innerHTML = 1 / dTime;
-	
+
 	let moveMat = mat4.translation(trans[0], trans[1], trans[2]);
 	moveMat = mat4.mRotateY(moveMat, degToRad(rot[1]));
 	moveMat = mat4.mRotateX(moveMat, degToRad(rot[2]));
@@ -228,11 +224,9 @@ function drawScene(now) {
 	cameraMatrix = mat4.mRotateZ(cameraMatrix, degToRad(rot[2]));
 
 	scene.cameraMatrix = cameraMatrix;
-	scene.render(gl,
-		{
-			...constUniforms,
-		});
-	
+	scene.render(gl, constUniforms);
+	constUniforms.u_lightWorldPosition = [-80, -100, 20];
+
 	updateValues(rot, trans);
 	requestAnimationFrame(drawScene);
 }
@@ -266,4 +260,3 @@ function correctFVertices(fGeometry) {
 	return fGeometry;
 }
 
-window.onload = main;

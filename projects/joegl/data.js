@@ -1,4 +1,5 @@
 import attribute from "./attribute.js"
+import { Vector2, Vector3 } from "./vector.js"
 
 export async function fetchTextData(path) {
 	let response = await fetch(path);
@@ -276,4 +277,54 @@ export function parseMTL(text) {
 
 	return materials;
 
+}
+
+export function generateTangents(position, texcoord) {
+
+	let tangents = new Array();
+	let bitTangents = new Array();
+
+	// generate tangent vectors
+	for (let i = 0; i < position.buffer.length / 3; i++) {
+		let posIdx = 3 * i;
+		let texIdx = 2 * i;
+
+		let p1 = position.buffer.slice(posIdx, posIdx + 3);
+		let p2 = position.buffer.slice(posIdx + 3, posIdx + 6);
+		let p3 = position.buffer.slice(posIdx + 6, posIdx + 9);
+
+		let uv1 = texcoord.buffer.slice(texIdx, texIdx + 2);
+		let uv2 = texcoord.buffer.slice(texIdx + 2, texIdx + 4);
+		let uv3 = texcoord.buffer.slice(texIdx + 4, texIdx + 6);
+
+		let edge1 = Vector3.sub(p2, p1);
+		let edge2 = Vector3.sub(p3, p1);
+
+		let dUV1 = Vector2.sub(uv2, uv1);
+		let dUV2 = Vector2.sub(uv3, uv1);
+
+		let f = 1.0 / (dUV1[0] * dUV2[1] - dUV2[0] * dUV1[1]);
+
+		// console.log(dUV1[0] * dUV2[1] - dUV2[0] * dUV1[1]);
+		// debugger
+
+		if (!Number.isFinite(f)) {
+			tangents.push(1, 0, 0);
+		} else {
+			tangents.push(
+				f * (dUV2[1] * edge1[0] - dUV1[1] * edge2[0]),
+				f * (dUV2[1] * edge1[1] - dUV1[1] * edge2[1]),
+				f * (dUV2[1] * edge1[2] - dUV1[1] * edge2[2]),
+			);
+		}
+
+		bitTangents.push([
+			f * (-dUV2[0] * edge1[0] - dUV1[0] * edge2[0]),
+			f * (-dUV2[0] * edge1[1] - dUV1[0] * edge2[1]),
+			f * (-dUV2[0] * edge1[2] - dUV1[0] * edge2[2]),
+		]);
+	}
+
+	// console.log(tangents);
+	return tangents;
 }

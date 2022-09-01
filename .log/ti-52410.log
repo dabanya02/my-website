@@ -1,0 +1,38 @@
+[02:44:05.034] Global cache location '/home/dabanya02/.cache/typescript/4.7', safe file path '/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/typingSafeList.json', types map path /home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/typesMap.json
+[02:44:05.035] Processing cache location '/home/dabanya02/.cache/typescript/4.7'
+[02:44:05.035] Trying to find '/home/dabanya02/.cache/typescript/4.7/package.json'...
+[02:44:05.035] Loaded content of '/home/dabanya02/.cache/typescript/4.7/package.json': {"private":true,"dependencies":{"types-registry":"^0.1.607"}}
+[02:44:05.035] Loaded content of '/home/dabanya02/.cache/typescript/4.7/package-lock.json'
+[02:44:05.035] Finished processing cache location '/home/dabanya02/.cache/typescript/4.7'
+[02:44:05.036] Process id: 52417
+[02:44:05.036] NPM location: /usr/bin/npm (explicit '--npmLocation' not  provided)
+[02:44:05.036] validateDefaultNpmLocation: false
+[02:44:05.036] Npm config file: /home/dabanya02/.cache/typescript/4.7/package.json
+[02:44:05.036] Updating types-registry npm package...
+[02:44:05.036] Exec: /usr/bin/npm install --ignore-scripts types-registry@latest
+[02:44:08.572]     Succeeded. stdout:
+    
+    up to date, audited 2 packages in 3s
+
+found 0 vulnerabilities
+
+[02:44:08.572] Updated types-registry npm package
+[02:44:08.595] Got install request {"projectName":"/dev/null/inferredProject1*","fileNames":["/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es5.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2016.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.dom.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.dom.iterable.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.webworker.importscripts.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.scripthost.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.core.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.collection.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.generator.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.iterable.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.promise.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.proxy.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.reflect.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.symbol.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2015.symbol.wellknown.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2016.array.include.d.ts","/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/lib.es2016.full.d.ts","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/vector.js","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/matrix.js","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/attribute.js","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/data.js","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/controls.js","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/primitives.js","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/glhelpers.js","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/math.js","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/object.js","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/Scene.js","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/joetest.js"],"compilerOptions":{"module":1,"target":3,"jsx":1,"allowJs":true,"allowSyntheticDefaultImports":true,"allowNonTsExtensions":true,"noEmitForJsFiles":true,"maxNodeModuleJsDepth":2},"typeAcquisition":{"enable":true,"include":[],"exclude":[]},"unresolvedImports":[],"projectRootPath":"/home/dabanya02/Projects/ProjectWebsite/projects/joegl","kind":"discover"}
+[02:44:08.611] Loaded safelist from types map file '/home/dabanya02/.emacs.d/.cache/lsp/npm/typescript/lib/node_modules/typescript/lib/typesMap.json'
+[02:44:08.612] Explicitly included types: []
+[02:44:08.613] Inferred typings from file names: ["mathjs"]
+[02:44:08.613] Inferred typings from unresolved imports: []
+[02:44:08.613] Result: {"cachedTypingPaths":[],"newTypingNames":["mathjs"],"filesToWatch":["/home/dabanya02/Projects/ProjectWebsite/projects/joegl/bower_components","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/node_modules"]}
+[02:44:08.613] Finished typings discovery: {"cachedTypingPaths":[],"newTypingNames":["mathjs"],"filesToWatch":["/home/dabanya02/Projects/ProjectWebsite/projects/joegl/bower_components","/home/dabanya02/Projects/ProjectWebsite/projects/joegl/node_modules"]}
+[02:44:08.613] DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/projects/joegl/bower_components
+[02:44:08.613] DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/projects/joegl/bower_components 1 undefined Project: /dev/null/inferredProject1* watcher already invoked: false
+[02:44:08.615] Elapsed:: 1.1903750002384186ms DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/projects/joegl/bower_components 1 undefined Project: /dev/null/inferredProject1* watcher already invoked: false
+[02:44:08.615] DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/projects/joegl/node_modules
+[02:44:08.615] DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/projects/joegl/node_modules 1 undefined Project: /dev/null/inferredProject1* watcher already invoked: false
+[02:44:08.615] Elapsed:: 0.05726999789476395ms DirectoryWatcher:: Added:: WatchInfo: /home/dabanya02/Projects/ProjectWebsite/projects/joegl/node_modules 1 undefined Project: /dev/null/inferredProject1* watcher already invoked: false
+[02:44:08.615] Installing typings ["mathjs"]
+[02:44:08.615] 'mathjs':: Entry for package 'mathjs' does not exist in local types registry - skipping...
+[02:44:08.615] All typings are known to be missing or invalid - no need to install more typings
+[02:44:08.615] Sending response:
+    {"projectName":"/dev/null/inferredProject1*","typeAcquisition":{"enable":true,"include":[],"exclude":[]},"compilerOptions":{"module":1,"target":3,"jsx":1,"allowJs":true,"allowSyntheticDefaultImports":true,"allowNonTsExtensions":true,"noEmitForJsFiles":true,"maxNodeModuleJsDepth":2},"typings":[],"unresolvedImports":[],"kind":"action::set"}
+[02:44:08.616] Response has been sent.
